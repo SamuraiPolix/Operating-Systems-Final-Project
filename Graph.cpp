@@ -30,7 +30,7 @@ void Graph::generateRandomEdges(int num_edges, unsigned int seed) {
 
         // make sure we don't add the same edge twice or an edge to itself
         if (u != v && std::find(adj[u].begin(), adj[u].end(), v) == adj[u].end()) {
-            addEdge(u, v);
+            addEdge(u, v, weight);
             edge_count++;
         }
     }
