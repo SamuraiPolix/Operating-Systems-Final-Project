@@ -59,14 +59,13 @@ void handle_client(int client_socket) {
         while (expected_edges > 0) {
             cout << "Waiting for " << expected_edges << " edges...\n";
             bytesReceived = recv(client_socket, buffer, 1024, 0);
-            cout << "Received " << bytesReceived << " bytes\n";
             if (bytesReceived <= 0) {
-                break;
+                close(client_socket);
+                return;       // end client thread
             }
             std::istringstream iss(std::string(buffer, bytesReceived));
             int u, v, weight;
             iss >> u >> v >> weight;
-            cout << "Received edge: " << u << " " << v << " " << weight << "\n";
             if (expected_edges <= 0) {
                 break;
             }
