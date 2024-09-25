@@ -1,0 +1,11 @@
+==801390== Callgrind, a call-graph generating cache profiler
+==801390== Copyright (C) 2002-2017, and GNU GPL'd, by Josef Weidendorfer et al.
+==801390== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==801390== Command: ./profiling
+==801390== 
+==801390== For interactive control, run 'callgrind_control -h'.
+==801390== 
+==801390== Events    : Ir
+==801390== Collected : 1255916747
+==801390== 
+==801390== I   refs:      1,255,916,747

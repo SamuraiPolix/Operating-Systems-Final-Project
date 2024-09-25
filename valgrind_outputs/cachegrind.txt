@@ -1,0 +1,83 @@
+make valgrind_cachegrind 
+valgrind --tool=cachegrind ./server
+==806942== Cachegrind, a cache and branch-prediction profiler
+==806942== Copyright (C) 2002-2017, and GNU GPL'd, by Nicholas Nethercote et al.
+==806942== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==806942== Command: ./server
+==806942== 
+--806942-- warning: L3 cache found, using its data for the LL simulation.
+Waiting for connections...
+Client connected, socket 4
+Still allowing more connections in the background...
+Graph created with 5 vertices. Waiting for 5 edges.
+Waiting for 5 edges...
+Added edge 0<->1 [2]. 4 edges remaining.
+Waiting for 4 edges...
+Added edge 1<->2 [3]. 3 edges remaining.
+Waiting for 3 edges...
+Added edge 2<->3 [4]. 2 edges remaining.
+Waiting for 2 edges...
+Added edge 3<->4 [5]. 1 edges remaining.
+Waiting for 1 edges...
+Added edge 1<->3 [4]. 0 edges remaining.
+Client disconnected.
+No connections or threads for 3 seconds. Exiting...
+==806942== 
+==806942== I   refs:      2,601,428
+==806942== I1  misses:        5,408
+==806942== LLi misses:        3,331
+==806942== I1  miss rate:      0.21%
+==806942== LLi miss rate:      0.13%
+==806942== 
+==806942== D   refs:        892,275  (640,534 rd   + 251,741 wr)
+==806942== D1  misses:       17,383  ( 14,687 rd   +   2,696 wr)
+==806942== LLd misses:        9,776  (  7,996 rd   +   1,780 wr)
+==806942== D1  miss rate:       1.9% (    2.3%     +     1.1%  )
+==806942== LLd miss rate:       1.1% (    1.2%     +     0.7%  )
+==806942== 
+==806942== LL refs:          22,791  ( 20,095 rd   +   2,696 wr)
+==806942== LL misses:        13,107  ( 11,327 rd   +   1,780 wr)
+==806942== LL miss rate:        0.4% (    0.3%     +     0.7%  )
+valgrind --tool=cachegrind ./threadpoll_server
+==807819== Cachegrind, a cache and branch-prediction profiler
+==807819== Copyright (C) 2002-2017, and GNU GPL'd, by Nicholas Nethercote et al.
+==807819== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==807819== Command: ./threadpoll_server
+==807819== 
+--807819-- warning: L3 cache found, using its data for the LL simulation.
+Waiting for connections...
+Client connected, socket 4
+Still allowing more connections in the background...
+Graph created with 5 vertices. Waiting for 5 edges.
+Waiting for 5 edges...
+Added edge 0->1 [2]. 4 edges remaining.
+Waiting for 4 edges...
+Added edge 1->2 [3]. 3 edges remaining.
+Waiting for 3 edges...
+Added edge 2->3 [4]. 2 edges remaining.
+Waiting for 2 edges...
+Added edge 3->4 [5]. 1 edges remaining.
+Waiting for 1 edges...
+Error: Vertex index out of bounds
+Waiting for 1 edges...
+Added edge 1->4 [3]. 0 edges remaining.
+
+
+
+Client disconnected.
+==807819== 
+==807819== I   refs:      2,668,907
+==807819== I1  misses:        5,938
+==807819== LLi misses:        3,362
+==807819== I1  miss rate:      0.22%
+==807819== LLi miss rate:      0.13%
+==807819== 
+==807819== D   refs:        924,514  (660,356 rd   + 264,158 wr)
+==807819== D1  misses:       18,450  ( 15,313 rd   +   3,137 wr)
+==807819== LLd misses:       10,163  (  8,048 rd   +   2,115 wr)
+==807819== D1  miss rate:       2.0% (    2.3%     +     1.2%  )
+==807819== LLd miss rate:       1.1% (    1.2%     +     0.8%  )
+==807819== 
+==807819== LL refs:          24,388  ( 21,251 rd   +   3,137 wr)
+==807819== LL misses:        13,525  ( 11,410 rd   +   2,115 wr)
+==807819== LL miss rate:        0.4% (    0.3%     +     0.8%  )

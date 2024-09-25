@@ -1,0 +1,174 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+ no time accumulated
+
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  Ts/call  Ts/call  name    
+  0.00      0.00     0.00      593     0.00     0.00  void std::vector<Edge, std::allocator<Edge> >::_M_realloc_insert<Edge>(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > >, Edge&&)
+  0.00      0.00     0.00      541     0.00     0.00  _fini
+  0.00      0.00     0.00      287     0.00     0.00  std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_S_relocate(std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::allocator<std::vector<Edge, std::allocator<Edge> > >&)
+  0.00      0.00     0.00      124     0.00     0.00  std::vector<Edge, std::allocator<Edge> >::back()
+  0.00      0.00     0.00       25     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > __gnu_cxx::__to_xstring<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char>(int (*)(char*, unsigned long, char const*, __va_list_tag*), unsigned long, char const*, ...)
+  0.00      0.00     0.00       25     0.00     0.00  std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_M_check_len(unsigned long, char const*) const
+  0.00      0.00     0.00       25     0.00     0.00  std::allocator_traits<std::allocator<unsigned long> >::deallocate(std::allocator<unsigned long>&, unsigned long*, unsigned long)
+  0.00      0.00     0.00       15     0.00     0.00  BoruvkaSolver::solve(Graph&)
+  0.00      0.00     0.00       15     0.00     0.00  void std::allocator_traits<std::allocator<Edge> >::destroy<Edge>(std::allocator<Edge>&, Edge*)
+  0.00      0.00     0.00       14     0.00     0.00  std::_Vector_base<int, std::allocator<int> >::~_Vector_base()
+  0.00      0.00     0.00       14     0.00     0.00  std::pair<std::_Rb_tree_iterator<std::tuple<int, int, int> >, bool> std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_M_insert_unique<std::tuple<int, int, int> >(std::tuple<int, int, int>&&)
+  0.00      0.00     0.00        8     0.00     0.00  __gnu_cxx::new_allocator<std::vector<Edge, std::allocator<Edge> > >::deallocate(std::vector<Edge, std::allocator<Edge> >*, unsigned long)
+  0.00      0.00     0.00        7     0.00     0.00  void std::_Destroy_aux<false>::__destroy<std::vector<Edge, std::allocator<Edge> >*>(std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*)
+  0.00      0.00     0.00        6     0.00     0.00  MSTSolver::printMetrics[abi:cxx11](std::vector<Edge, std::allocator<Edge> >&)
+  0.00      0.00     0.00        4     0.00     0.00  std::_Vector_base<int, std::allocator<int> >::_Vector_base(unsigned long, std::allocator<int> const&)
+  0.00      0.00     0.00        4     0.00     0.00  void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char const*>(char const*, char const*, std::forward_iterator_tag)
+  0.00      0.00     0.00        3     0.00     0.00  unionSets(std::vector<int, std::allocator<int> >&, std::vector<int, std::allocator<int> >&, int, int)
+  0.00      0.00     0.00        3     0.00     0.00  std::vector<Edge, std::allocator<Edge> >::_M_check_len(unsigned long, char const*) const
+  0.00      0.00     0.00        3     0.00     0.00  std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_M_mbegin() const
+  0.00      0.00     0.00        3     0.00     0.00  std::_Tuple_impl<0ul, int, int, int>::_Tuple_impl<int&, int&, int&, void>(int&, int&, int&)
+  0.00      0.00     0.00        3     0.00     0.00  std::pair<std::_Rb_tree_const_iterator<std::tuple<int, int, int> >, bool>::pair<std::_Rb_tree_iterator<std::tuple<int, int, int> >&, bool&, true>(std::_Rb_tree_iterator<std::tuple<int, int, int> >&, bool&)
+  0.00      0.00     0.00        3     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >(unsigned long, char, std::allocator<char> const&)
+  0.00      0.00     0.00        3     0.00     0.00  std::__cxx11::to_string(int)
+  0.00      0.00     0.00        3     0.00     0.00  std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::erase(std::tuple<int, int, int> const&)
+  0.00      0.00     0.00        2     0.00     0.00  MSTSolver::longestDistance(std::vector<Edge, std::allocator<Edge> >&)
+  0.00      0.00     0.00        2     0.00     0.00  std::_Vector_base<int, std::allocator<int> >::_Vector_impl::~_Vector_impl()
+  0.00      0.00     0.00        2     0.00     0.00  std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_Rb_tree_impl<std::less<std::tuple<int, int, int> >, true>::~_Rb_tree_impl()
+  0.00      0.00     0.00        1     0.00     0.00  std::_Bvector_base<std::allocator<bool> >::_Bvector_base(std::allocator<bool> const&)
+
+			Call graph
+
+
+granularity: each sample hit covers 4 byte(s) no time propagated
+
+index % time    self  children    called     name
+                                  25             void std::vector<Edge, std::allocator<Edge> >::_M_realloc_insert<Edge>(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > >, Edge&&) [8]
+                0.00    0.00       4/593         std::_Rb_tree_header::_Rb_tree_header() [354]
+                0.00    0.00       8/593         std::__cxx11::to_string(int) [30]
+                0.00    0.00      28/593         std::pair<std::_Rb_tree_iterator<std::tuple<int, int, int> >, bool> std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_M_insert_unique<std::tuple<int, int, int> >(std::tuple<int, int, int>&&) [18]
+                0.00    0.00      45/593         std::vector<Edge, std::allocator<Edge> >::back() [11]
+                0.00    0.00      98/593         bool __gnu_cxx::operator==<Edge*, std::vector<Edge, std::allocator<Edge> > >(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > > const&, __gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > > const&) [137]
+                0.00    0.00     410/593         etext [4]
+[8]      0.0    0.00    0.00     593+25      void std::vector<Edge, std::allocator<Edge> >::_M_realloc_insert<Edge>(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > >, Edge&&) [8]
+                0.00    0.00     255/287         std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_S_relocate(std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::allocator<std::vector<Edge, std::allocator<Edge> > >&) [10]
+                0.00    0.00      25/25          std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_M_check_len(unsigned long, char const*) const [13]
+                                  25             void std::vector<Edge, std::allocator<Edge> >::_M_realloc_insert<Edge>(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > >, Edge&&) [8]
+-----------------------------------------------
+                0.00    0.00      14/541         int* std::__uninitialized_fill_n_a<int*, unsigned long, int, int>(int*, unsigned long, int const&, std::allocator<int>&) [603]
+                0.00    0.00     527/541         etext [4]
+[9]      0.0    0.00    0.00     541         _fini [9]
+-----------------------------------------------
+                0.00    0.00       7/287         std::vector<Edge, std::allocator<Edge> >::_M_check_len(unsigned long, char const*) const [25]
+                0.00    0.00      25/287         std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_M_check_len(unsigned long, char const*) const [13]
+                0.00    0.00     255/287         void std::vector<Edge, std::allocator<Edge> >::_M_realloc_insert<Edge>(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > >, Edge&&) [8]
+[10]     0.0    0.00    0.00     287         std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_S_relocate(std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::allocator<std::vector<Edge, std::allocator<Edge> > >&) [10]
+-----------------------------------------------
+                0.00    0.00       2/124         unsigned int std::__detail::__to_chars_len<unsigned int>(unsigned int, int) [538]
+                0.00    0.00       2/124         std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_Rb_tree() [536]
+                0.00    0.00       2/124         std::set<std::tuple<int, int, int>, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::~set() [413]
+                0.00    0.00      14/124         __gnu_cxx::new_allocator<Edge>::deallocate(Edge*, unsigned long) [79]
+                0.00    0.00      14/124         std::char_traits<char>::length(char const*) [293]
+                0.00    0.00      14/124         std::_Tuple_impl<0ul, int, int, int>::_Tuple_impl<int&, int&, int&, void>(int&, int&, int&) [27]
+                0.00    0.00      76/124         etext [4]
+[11]     0.0    0.00    0.00     124         std::vector<Edge, std::allocator<Edge> >::back() [11]
+                0.00    0.00      45/593         void std::vector<Edge, std::allocator<Edge> >::_M_realloc_insert<Edge>(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > >, Edge&&) [8]
+-----------------------------------------------
+                0.00    0.00      25/25          std::_Bvector_base<std::allocator<bool> >::_Bvector_impl_data::_M_reset() [345]
+[12]     0.0    0.00    0.00      25         std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > __gnu_cxx::__to_xstring<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char>(int (*)(char*, unsigned long, char const*, __va_list_tag*), unsigned long, char const*, ...) [12]
+-----------------------------------------------
+                0.00    0.00      25/25          void std::vector<Edge, std::allocator<Edge> >::_M_realloc_insert<Edge>(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > >, Edge&&) [8]
+[13]     0.0    0.00    0.00      25         std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_M_check_len(unsigned long, char const*) const [13]
+                0.00    0.00      25/287         std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_S_relocate(std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::allocator<std::vector<Edge, std::allocator<Edge> > >&) [10]
+-----------------------------------------------
+                0.00    0.00      25/25          etext [4]
+[14]     0.0    0.00    0.00      25         std::allocator_traits<std::allocator<unsigned long> >::deallocate(std::allocator<unsigned long>&, unsigned long*, unsigned long) [14]
+-----------------------------------------------
+                0.00    0.00      15/15          etext [4]
+[15]     0.0    0.00    0.00      15         BoruvkaSolver::solve(Graph&) [15]
+                0.00    0.00       3/3           unionSets(std::vector<int, std::allocator<int> >&, std::vector<int, std::allocator<int> >&, int, int) [24]
+-----------------------------------------------
+                0.00    0.00       1/15          etext [4]
+                0.00    0.00      14/15          std::_Vector_base<int, std::allocator<int> >::_Vector_impl::_Vector_impl(std::allocator<int> const&) [332]
+[16]     0.0    0.00    0.00      15         void std::allocator_traits<std::allocator<Edge> >::destroy<Edge>(std::allocator<Edge>&, Edge*) [16]
+-----------------------------------------------
+                0.00    0.00      14/14          int* std::__uninitialized_default_n_a<int*, unsigned long, int>(int*, unsigned long, std::allocator<int>&) [607]
+[17]     0.0    0.00    0.00      14         std::_Vector_base<int, std::allocator<int> >::~_Vector_base() [17]
+-----------------------------------------------
+                0.00    0.00      14/14          std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::begin() const [213]
+[18]     0.0    0.00    0.00      14         std::pair<std::_Rb_tree_iterator<std::tuple<int, int, int> >, bool> std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_M_insert_unique<std::tuple<int, int, int> >(std::tuple<int, int, int>&&) [18]
+                0.00    0.00      28/593         void std::vector<Edge, std::allocator<Edge> >::_M_realloc_insert<Edge>(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > >, Edge&&) [8]
+-----------------------------------------------
+                0.00    0.00       1/8           etext [4]
+                0.00    0.00       7/8           std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_S_max_size(std::allocator<std::vector<Edge, std::allocator<Edge> > > const&) [466]
+[19]     0.0    0.00    0.00       8         __gnu_cxx::new_allocator<std::vector<Edge, std::allocator<Edge> > >::deallocate(std::vector<Edge, std::allocator<Edge> >*, unsigned long) [19]
+                0.00    0.00       1/1           std::_Bvector_base<std::allocator<bool> >::_Bvector_base(std::allocator<bool> const&) [35]
+-----------------------------------------------
+                0.00    0.00       2/7           void std::__detail::__to_chars_10_impl<unsigned int>(char*, unsigned int, unsigned int) [539]
+                0.00    0.00       5/7           void __gnu_cxx::new_allocator<Edge>::construct<Edge, Edge>(Edge*, Edge&&) [83]
+[20]     0.0    0.00    0.00       7         void std::_Destroy_aux<false>::__destroy<std::vector<Edge, std::allocator<Edge> >*>(std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*) [20]
+-----------------------------------------------
+                0.00    0.00       1/6           std::vector<int, std::allocator<int> >::~vector() [500]
+                0.00    0.00       5/6           etext [4]
+[21]     0.0    0.00    0.00       6         MSTSolver::printMetrics[abi:cxx11](std::vector<Edge, std::allocator<Edge> >&) [21]
+-----------------------------------------------
+                0.00    0.00       2/4           std::_Vector_base<int, std::allocator<int> >::_Vector_impl::~_Vector_impl() [33]
+                0.00    0.00       2/4           etext [4]
+[22]     0.0    0.00    0.00       4         std::_Vector_base<int, std::allocator<int> >::_Vector_base(unsigned long, std::allocator<int> const&) [22]
+-----------------------------------------------
+                0.00    0.00       4/4           etext [4]
+[23]     0.0    0.00    0.00       4         void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char const*>(char const*, char const*, std::forward_iterator_tag) [23]
+-----------------------------------------------
+                0.00    0.00       3/3           BoruvkaSolver::solve(Graph&) [15]
+[24]     0.0    0.00    0.00       3         unionSets(std::vector<int, std::allocator<int> >&, std::vector<int, std::allocator<int> >&, int, int) [24]
+-----------------------------------------------
+                0.00    0.00       1/3           etext [4]
+                0.00    0.00       2/3           std::__cxx11::to_string(int) [30]
+[25]     0.0    0.00    0.00       3         std::vector<Edge, std::allocator<Edge> >::_M_check_len(unsigned long, char const*) const [25]
+                0.00    0.00       7/287         std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_S_relocate(std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::allocator<std::vector<Edge, std::allocator<Edge> > >&) [10]
+-----------------------------------------------
+                0.00    0.00       3/3           etext [4]
+[26]     0.0    0.00    0.00       3         std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_M_mbegin() const [26]
+-----------------------------------------------
+                0.00    0.00       3/3           etext [4]
+[27]     0.0    0.00    0.00       3         std::_Tuple_impl<0ul, int, int, int>::_Tuple_impl<int&, int&, int&, void>(int&, int&, int&) [27]
+                0.00    0.00      14/124         std::vector<Edge, std::allocator<Edge> >::back() [11]
+-----------------------------------------------
+                0.00    0.00       3/3           etext [4]
+[28]     0.0    0.00    0.00       3         std::pair<std::_Rb_tree_const_iterator<std::tuple<int, int, int> >, bool>::pair<std::_Rb_tree_iterator<std::tuple<int, int, int> >&, bool&, true>(std::_Rb_tree_iterator<std::tuple<int, int, int> >&, bool&) [28]
+-----------------------------------------------
+                0.00    0.00       1/3           etext [4]
+                0.00    0.00       2/3           std::vector<int, std::allocator<int> >::vector(unsigned long, std::allocator<int> const&) [499]
+[29]     0.0    0.00    0.00       3         std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >(unsigned long, char, std::allocator<char> const&) [29]
+-----------------------------------------------
+                0.00    0.00       3/3           etext [4]
+[30]     0.0    0.00    0.00       3         std::__cxx11::to_string(int) [30]
+                0.00    0.00       8/593         void std::vector<Edge, std::allocator<Edge> >::_M_realloc_insert<Edge>(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > >, Edge&&) [8]
+                0.00    0.00       2/3           std::vector<Edge, std::allocator<Edge> >::_M_check_len(unsigned long, char const*) const [25]
+-----------------------------------------------
+                0.00    0.00       3/3           etext [4]
+[31]     0.0    0.00    0.00       3         std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::erase(std::tuple<int, int, int> const&) [31]
+-----------------------------------------------
+                0.00    0.00       2/2           MSTSolver::shortestDistance(std::vector<Edge, std::allocator<Edge> >&) [73]
+[32]     0.0    0.00    0.00       2         MSTSolver::longestDistance(std::vector<Edge, std::allocator<Edge> >&) [32]
+-----------------------------------------------
+                0.00    0.00       2/2           etext [4]
+[33]     0.0    0.00    0.00       2         std::_Vector_base<int, std::allocator<int> >::_Vector_impl::~_Vector_impl() [33]
+                0.00    0.00       2/4           std::_Vector_base<int, std::allocator<int> >::_Vector_base(unsigned long, std::allocator<int> const&) [22]
+-----------------------------------------------
+                0.00    0.00       2/2           std::_Rb_tree_header::_M_reset() [353]
+[34]     0.0    0.00    0.00       2         std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_Rb_tree_impl<std::less<std::tuple<int, int, int> >, true>::~_Rb_tree_impl() [34]
+-----------------------------------------------
+                0.00    0.00       1/1           __gnu_cxx::new_allocator<std::vector<Edge, std::allocator<Edge> > >::deallocate(std::vector<Edge, std::allocator<Edge> >*, unsigned long) [19]
+[35]     0.0    0.00    0.00       1         std::_Bvector_base<std::allocator<bool> >::_Bvector_base(std::allocator<bool> const&) [35]
+-----------------------------------------------
+
+Index by function name
+
+  [24] unionSets(std::vector<int, std::allocator<int> >&, std::vector<int, std::allocator<int> >&, int, int) [20] void std::_Destroy_aux<false>::__destroy<std::vector<Edge, std::allocator<Edge> >*>(std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*) [10] std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_S_relocate(std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::vector<Edge, std::allocator<Edge> >*, std::allocator<std::vector<Edge, std::allocator<Edge> > >&)
+  [15] BoruvkaSolver::solve(Graph&) [33] std::_Vector_base<int, std::allocator<int> >::_Vector_impl::~_Vector_impl() [23] void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char const*>(char const*, char const*, std::forward_iterator_tag)
+  [21] MSTSolver::printMetrics[abi:cxx11](std::vector<Edge, std::allocator<Edge> >&) [22] std::_Vector_base<int, std::allocator<int> >::_Vector_base(unsigned long, std::allocator<int> const&) [29] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >(unsigned long, char, std::allocator<char> const&)
+  [32] MSTSolver::longestDistance(std::vector<Edge, std::allocator<Edge> >&) [17] std::_Vector_base<int, std::allocator<int> >::~_Vector_base() [30] std::__cxx11::to_string(int)
+  [12] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > __gnu_cxx::__to_xstring<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, char>(int (*)(char*, unsigned long, char const*, __va_list_tag*), unsigned long, char const*, ...) [35] std::_Bvector_base<std::allocator<bool> >::_Bvector_base(std::allocator<bool> const&) [34] std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_Rb_tree_impl<std::less<std::tuple<int, int, int> >, true>::~_Rb_tree_impl()
+  [19] __gnu_cxx::new_allocator<std::vector<Edge, std::allocator<Edge> > >::deallocate(std::vector<Edge, std::allocator<Edge> >*, unsigned long) [16] void std::allocator_traits<std::allocator<Edge> >::destroy<Edge>(std::allocator<Edge>&, Edge*) [18] std::pair<std::_Rb_tree_iterator<std::tuple<int, int, int> >, bool> std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_M_insert_unique<std::tuple<int, int, int> >(std::tuple<int, int, int>&&)
+  [25] std::vector<Edge, std::allocator<Edge> >::_M_check_len(unsigned long, char const*) const [14] std::allocator_traits<std::allocator<unsigned long> >::deallocate(std::allocator<unsigned long>&, unsigned long*, unsigned long) [31] std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::erase(std::tuple<int, int, int> const&)
+  [13] std::vector<std::vector<Edge, std::allocator<Edge> >, std::allocator<std::vector<Edge, std::allocator<Edge> > > >::_M_check_len(unsigned long, char const*) const [28] std::pair<std::_Rb_tree_const_iterator<std::tuple<int, int, int> >, bool>::pair<std::_Rb_tree_iterator<std::tuple<int, int, int> >&, bool&, true>(std::_Rb_tree_iterator<std::tuple<int, int, int> >&, bool&) [9] _fini
+  [26] std::_Rb_tree<std::tuple<int, int, int>, std::tuple<int, int, int>, std::_Identity<std::tuple<int, int, int> >, std::less<std::tuple<int, int, int> >, std::allocator<std::tuple<int, int, int> > >::_M_mbegin() const [8] void std::vector<Edge, std::allocator<Edge> >::_M_realloc_insert<Edge>(__gnu_cxx::__normal_iterator<Edge*, std::vector<Edge, std::allocator<Edge> > >, Edge&&)
+  [27] std::_Tuple_impl<0ul, int, int, int>::_Tuple_impl<int&, int&, int&, void>(int&, int&, int&) [11] std::vector<Edge, std::allocator<Edge> >::back()
