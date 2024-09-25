@@ -21,6 +21,7 @@ using namespace std;        // TODO make it more specific later
 // ---------------------------- Constants and Global vars ----------------------------
 #define PORT 9034
 #define MAXCONNECTIONS 10
+#define TIMEOUT_SEC 3
 std::mutex graphMutex;
 Graph graph(0);
 
@@ -76,6 +77,7 @@ void handle_client(int client_socket) {
             cout << "Waiting for " << expected_edges << " edges...\n";
             bytesReceived = recv(client_socket, buffer, 1024, 0);
             if (bytesReceived <= 0) {
+                std::cout << "Client disconnected.\n";
                 close(client_socket);
                 return;       // end client thread
             }
@@ -142,6 +144,7 @@ void handle_client(int client_socket) {
         }
         std::cout << std::endl;
     }
+    std::cout << "Client disconnected.\n";
     close(client_socket);
 }
 
@@ -189,15 +192,48 @@ int main() {
     socklen_t clientAddrSize = sizeof(clientAddr);
 
     std::cout << "Waiting for connections..." << std::endl;
-    while (true) {
-        if ((client = accept(server, (struct sockaddr*)&clientAddr, &clientAddrSize)) < 0) {
-            perror("accept");
-            exit(EXIT_FAILURE);
-        }
-        std::cout << "Client connected, socket " << client << std::endl;
-        std::cout << "Still allowing more connections in the background..." << std::endl;
+    
+    auto lastConnectionTime = std::chrono::steady_clock::now();
 
-        pool.enqueue([client] { handle_client(client); });
+    while (true) {
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(server, &readfds);
+
+        struct timeval timeout;
+        timeout.tv_sec = TIMEOUT_SEC;
+        timeout.tv_usec = 0;
+
+        int activity = select(server + 1, &readfds, NULL, NULL, &timeout);
+
+        if (activity < 0 && errno != EINTR) {
+            std::cerr << "select error\n";
+            break;
+        }
+
+        if (activity == 0) { // Timeout
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::seconds>(now - lastConnectionTime).count() >= TIMEOUT_SEC) {
+                // std::cout << "No connections for " << TIMEOUT_SEC << " seconds. Checking for active tasks...\n";
+                if (!pool.hasActiveTasks()) {
+                    // std::cout << "No active tasks. Exiting...\n";
+                    break;
+                } else {
+                    // std::cout << "Active tasks still running. Continuing...\n";
+                }
+            }
+        } else if (FD_ISSET(server, &readfds)) {
+            if ((client = accept(server, (struct sockaddr*)&clientAddr, &clientAddrSize)) < 0) {
+                perror("accept");
+                exit(EXIT_FAILURE);
+            }
+            std::cout << "Client connected, socket " << client << std::endl;
+            std::cout << "Still allowing more connections in the background..." << std::endl;
+
+            pool.enqueue([client] { handle_client(client); });
+
+            lastConnectionTime = std::chrono::steady_clock::now();
+        }
     }
 
     return 0;

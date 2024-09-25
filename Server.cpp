@@ -20,6 +20,7 @@ using namespace std;        // TODO make it more specific later
 // ---------------------------- Constants and Global vars ----------------------------
 #define PORT 9034
 #define MAXCONNECTIONS 10
+#define TIMEOUT_SEC 3
 std::mutex graphMutex;
 Graph graph(0);
 
@@ -60,6 +61,7 @@ void handle_client(int client_socket) {
             cout << "Waiting for " << expected_edges << " edges...\n";
             bytesReceived = recv(client_socket, buffer, 1024, 0);
             if (bytesReceived <= 0) {
+                std::cout << "Client disconnected.\n";
                 close(client_socket);
                 return;       // end client thread
             }
@@ -143,6 +145,7 @@ void handle_client(int client_socket) {
             std::cout << "Unknown command.\n";
         }
     }
+    std::cout << "Client disconnected.\n";
     close(client_socket);
 }
 
@@ -189,18 +192,56 @@ int main() {
     socklen_t clientAddrSize = sizeof(clientAddr);
 
     std::cout << "Waiting for connections..." << std::endl;
-    while (true) {
-        if ((client = accept(server, (struct sockaddr*)&clientAddr, &clientAddrSize)) < 0) {
-            perror("accept");
-            exit(EXIT_FAILURE);
-        }
-        std::cout << "Client connected, socket " << client << std::endl;
-        std::cout << "Still allowing more connections in the background..." << std::endl;
+    std::vector<std::thread> clientThreads;
+    auto lastConnectionTime = std::chrono::steady_clock::now();
 
-        // Handle client connection
-        std::thread clientThread(handle_client, client);
-        clientThread.detach(); // Detach thread to handle multiple clients
+    while (true) {
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(server, &readfds);
+
+        struct timeval timeout;
+        timeout.tv_sec = TIMEOUT_SEC;
+        timeout.tv_usec = 0;
+
+        int activity = select(server + 1, &readfds, NULL, NULL, &timeout);
+
+        if (activity < 0 && errno != EINTR) {
+            std::cerr << "select error\n";
+            break;
+        }
+
+        if (activity == 0) { // Timeout
+            auto now = std::chrono::steady_clock::now();        // cpu clock
+            if (clientThreads.empty() && std::chrono::duration_cast<std::chrono::seconds>(now - lastConnectionTime).count() >= 15) {
+                std::cout << "No connections or threads for " << TIMEOUT_SEC << " seconds. Exiting...\n";
+                break;
+            }
+        } else if (FD_ISSET(server, &readfds)) {
+            if ((client = accept(server, (struct sockaddr*)&clientAddr, &clientAddrSize)) < 0) {
+                perror("accept");
+                exit(EXIT_FAILURE);
+            }
+            std::cout << "Client connected, socket " << client << std::endl;
+            std::cout << "Still allowing more connections in the background..." << std::endl;
+
+            // Handle client connection
+            clientThreads.emplace_back(handle_client, client);
+            lastConnectionTime = std::chrono::steady_clock::now();
+            // Remove dead threads from clientThreads
+            for (auto it = clientThreads.begin(); it != clientThreads.end(); ) {
+                if (it->joinable()) {
+                    it->join();
+                    it = clientThreads.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+        }
     }
+
+    // Close server socket
+    close(server);
 
     return 0;
 }

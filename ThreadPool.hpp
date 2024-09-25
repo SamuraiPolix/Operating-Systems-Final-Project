@@ -8,12 +8,14 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+#include <atomic>
 
 class ThreadPool {
 public:
     ThreadPool(size_t numThreads);
     ~ThreadPool();
     void enqueue(std::function<void()> task);
+    bool hasActiveTasks(); 
 
 private:
     void workerThread();
@@ -22,6 +24,7 @@ private:
     std::mutex mtx;
     std::condition_variable cv;
     bool stop;
+    std::atomic<int> activeTasks; // Track active tasks
 };
 
 #endif // THREAD_POOL_HPP
