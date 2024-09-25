@@ -14,6 +14,7 @@
 #include <cerrno>
 #include "Graph.hpp"
 #include "MSTFactory.hpp"
+#include "ThreadPool.hpp"
 
 using namespace std;        // TODO make it more specific later
 
@@ -26,8 +27,23 @@ Graph graph(0);
 // ---------------------------- Declare Functions ----------------------------
 void handle_client_command(int client_socket, const std::string& command);
 void handle_client(int client_socket); 
+void handle_solver(int client_socket, MSTFactory::MSTType type);
 
 // ---------------------------- Functions ----------------------------
+void handle_solver(int client_socket, MSTFactory::MSTType type) {
+    // Solve MST
+    std::unique_ptr<MSTSolver> solver = MSTFactory::createSolver(type);
+    std::vector<Edge> mst = solver->solve(graph);
+
+    // Send results to client
+    std::string response = "Minimum Spanning Tree:\n";
+    for (const Edge& edge : mst) {
+        response += std::to_string(edge.u) + " -> " + std::to_string(edge.v) + " (" + std::to_string(edge.weight) + ")\n";
+    }
+    response += solver->printMetrics(mst);
+    send(client_socket, response.c_str(), response.size(), 0);
+}
+
 void handle_client(int client_socket) {
     char buffer[1024];
     int bytesReceived;
@@ -115,33 +131,16 @@ void handle_client(int client_socket) {
         }
         else if (cmd == "Boruvka") {
             validCommand = true;
-            std::unique_ptr<MSTSolver> solver = MSTFactory::createSolver(MSTFactory::BORUVKA);
-            lock.lock();
-            std::vector<Edge> mst = solver->solve(graph);
-            lock.unlock();
-            std::string response = "Minimum Spanning Tree (Boruvka):\n";
-            for (const Edge& edge : mst) {
-                response += std::to_string(edge.u) + " -> " + std::to_string(edge.v) + " (" + std::to_string(edge.weight) + ")\n";
-            }
-            response += solver->printMetrics(mst);
-            send(client_socket, response.c_str(), response.size(), 0);
+            handle_solver(client_socket, MSTFactory::BORUVKA);
         }
         else if (cmd == "Prim") {
             validCommand = true;
-            std::unique_ptr<MSTSolver> solver = MSTFactory::createSolver(MSTFactory::PRIM);
-            lock.lock();
-            std::vector<Edge> mst = solver->solve(graph);
-            lock.unlock();
-            std::string response = "Minimum Spanning Tree (Prim):\n";
-            for (const Edge& edge : mst) {
-                response += std::to_string(edge.u) + " -> " + std::to_string(edge.v) + " (" + std::to_string(edge.weight) + ")\n";
-            }
-            response += solver->printMetrics(mst);
-            send(client_socket, response.c_str(), response.size(), 0);
+            handle_solver(client_socket, MSTFactory::BORUVKA);
         }
         else if (!validCommand) {
             std::cout << "Unknown command.\n";
         }
+        std::cout << std::endl;
     }
     close(client_socket);
 }
@@ -149,6 +148,7 @@ void handle_client(int client_socket) {
 
 // ---------------------------- Main ----------------------------
 int main() {
+    ThreadPool pool(10); // Create a thread pool with 10 threads
     // Create a socket
     int server = socket(AF_INET, SOCK_STREAM, 0);
     if (server == -1) {
@@ -197,9 +197,7 @@ int main() {
         std::cout << "Client connected, socket " << client << std::endl;
         std::cout << "Still allowing more connections in the background..." << std::endl;
 
-        // Handle client connection
-        std::thread clientThread(handle_client, client);
-        clientThread.detach(); // Detach thread to handle multiple clients
+        pool.enqueue([client] { handle_client(client); });
     }
 
     return 0;

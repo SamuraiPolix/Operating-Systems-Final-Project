@@ -5,6 +5,79 @@
 #include <limits>
 #include <tuple>
 
+
+// ---------------------------- Calculate Metrics ----------------------------
+int MSTSolver::totalWeight(Graph& graph) {
+    std::vector<Edge> mst = solve(graph);
+    return totalWeight(mst);
+}
+
+int MSTSolver::longestDistance(Graph& graph) {
+    std::vector<Edge> mst = solve(graph);
+    return longestDistance(mst);
+}
+
+int MSTSolver::shortestDistance(Graph& graph) {
+    std::vector<Edge> mst = solve(graph);
+    return shortestDistance(mst);
+}
+
+double MSTSolver::averageDistance(Graph& graph) {
+    std::vector<Edge> mst = solve(graph);
+    return totalWeight(mst);
+}
+
+int MSTSolver::totalWeight(std::vector<Edge>& mst){
+    int totalWeight = 0;
+    int numEdges = 0;
+    for (const Edge& edge : mst) {
+        totalWeight += edge.weight;
+        numEdges++;
+    }
+    return static_cast<double>(totalWeight) / numEdges;
+}
+
+int MSTSolver::longestDistance(std::vector<Edge>& mst){
+    int longestDistance = 0;
+    for (const Edge& edge : mst) {
+        longestDistance = std::max(longestDistance, edge.weight);
+    }
+    return longestDistance;
+}
+
+int MSTSolver::shortestDistance(std::vector<Edge>& mst){
+    int shortestDistance = INT_MAX;
+    for (const Edge& edge : mst) {
+        shortestDistance = std::min(shortestDistance, edge.weight);
+    }
+    return shortestDistance;
+}
+
+double MSTSolver::averageDistance(std::vector<Edge>& mst){
+    int totalWeight = 0;
+    int numEdges = 0;
+    for (const Edge& edge : mst) {
+        totalWeight += edge.weight;
+        numEdges++;
+    }
+    return static_cast<double>(totalWeight) / numEdges;
+}
+
+std::string MSTSolver::printMetrics(Graph& graph){
+    std::vector<Edge> mst = solve(graph);
+    return printMetrics(mst);
+}
+
+std::string MSTSolver::printMetrics(std::vector<Edge>& mst){
+    std::string response = "Metrics:\n";
+    response += "Total weight: " + std::to_string(totalWeight(mst)) + "\n";
+    response += "Longest distance: " + std::to_string(longestDistance(mst)) + "\n";
+    response += "Shortest distance: " + std::to_string(shortestDistance(mst)) + "\n";
+    response += "Average distance: " + std::to_string(averageDistance(mst)) + "\n";
+    return response;
+}
+
+
 // Helper function to find the root of a set in the disjoint-set/union-find structure
 int find(std::vector<int>& parent, int i) {
     if (parent[i] != i) {
@@ -28,20 +101,12 @@ void unionSets(std::vector<int>& parent, std::vector<int>& rank, int u, int v) {
     }
 }
 
-int MSTSolver::totalWeight(Graph& graph) {
-    int totalWeight = 0;
-    for (const Edge& edge : solve(graph)) {
-        totalWeight += edge.weight;
-    }
-    return totalWeight;
-}
-
 // Boruvka's algorithm implementation
 std::vector<Edge> BoruvkaSolver::solve(Graph& graph) {
-    if (!graph.isConnected()) {
-        std::cout << "Graph is not connected\n";
-        return {};
-    }
+    // if (!graph.isConnected()) {
+    //     std::cout << "Graph is not connected\n";
+    //     return {};
+    // }
     int numVertices = graph.getNumVertices();
     std::vector<Edge> mstEdges;
     std::vector<int> parent(numVertices);
@@ -152,10 +217,10 @@ std::vector<Edge> BoruvkaSolver::solve(Graph& graph) {
 // }
 
 std::vector<Edge> PrimSolver::solve(Graph& graph) {
-    if (!graph.isConnected()) {
-        std::cout << "Graph is not connected\n";
-        return {};
-    }
+    // if (!graph.isConnected()) {
+    //     std::cout << "Graph is not connected\n";
+    //     return {};
+    // }
     int numVertices = graph.getNumVertices();
     
     std::vector<int> key(numVertices, INT_MAX);  // Key values to pick the minimum edge weight
