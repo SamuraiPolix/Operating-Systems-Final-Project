@@ -10,8 +10,8 @@ ThreadPool::~ThreadPool() {
     {
         std::unique_lock<std::mutex> lock(mtx);
         stop = true;
+        cv.notify_all();
     }
-    cv.notify_all();
     for (std::thread& worker : workers) {
         worker.join();
     }
@@ -22,8 +22,8 @@ void ThreadPool::enqueue(std::function<void()> task) {
         std::unique_lock<std::mutex> lock(mtx);
         tasks.push(task);
         activeTasks++;
+        cv.notify_one();
     }
-    cv.notify_one();
 }
 
 bool ThreadPool::hasActiveTasks() {
