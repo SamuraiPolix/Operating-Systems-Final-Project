@@ -1,0 +1,117 @@
+        -:    0:Source:Graph.cpp
+        -:    1:#include <iostream>
+        -:    2:#include "Graph.hpp"
+        -:    3:#include <stack>
+        -:    4:
+        4:    5:Graph::Graph(int num_vertices) {
+        4:    6:    this->num_vertices = num_vertices;
+        4:    7:    adj.resize(num_vertices);
+        -:    8:
+        -:    9:    #ifdef DEBUG
+        -:   10:        std::cout << "Graph initialized with " << num_vertices << " vertices" << std::endl;
+        -:   11:    #endif
+        4:   12:}
+        -:   13:
+        4:   14:Graph::~Graph() {
+        -:   15:    // didn't allocate any memory, so nothing to delete, will just clear the vector
+        -:   16:    // adj.clear();
+        4:   17:}
+        -:   18:
+        2:   19:void Graph::resetGraph(int num_vertices) {
+        2:   20:    this->num_vertices = num_vertices;
+        2:   21:    adj.clear();
+        2:   22:    adj.resize(num_vertices);
+        2:   23:}
+        -:   24:
+       21:   25:void Graph::addEdge(int u, int v, int weight) {
+       21:   26:    if (u < 0 || u >= num_vertices || v < 0 || v >= num_vertices) {
+    #####:   27:        return;
+        -:   28:    }
+       21:   29:    bool found = false;
+       44:   30:    for (const Edge& edge : adj[u]) {
+       23:   31:        if (edge == v) {
+        2:   32:            found = true;
+        -:   33:        }
+        -:   34:    }
+       21:   35:    if (!found) {
+       19:   36:        adj[u].push_back(Edge(u, v, weight));
+        -:   37:    }
+       21:   38:    found = false;
+       32:   39:    for (const Edge& edge : adj[v]) {
+       11:   40:        if (edge == u) {
+        2:   41:            found = true;
+        -:   42:        }
+        -:   43:    }
+       21:   44:    if (!found) {
+       19:   45:        adj[v].push_back(Edge(v, u, weight));
+        -:   46:    }
+        -:   47:}
+        -:   48:
+        3:   49:void Graph::removeEdge(int u, int v) {
+        3:   50:    auto it_u = std::remove_if(adj[u].begin(), adj[u].end(), [v](const Edge& edge) {
+        7:   51:        return edge == v;
+        -:   52:    });
+        3:   53:    if (it_u != adj[u].end()) {
+        2:   54:        adj[u].erase(it_u, adj[u].end());
+        -:   55:    }
+        -:   56:
+        3:   57:    auto it_v = std::remove_if(adj[v].begin(), adj[v].end(), [u](const Edge& edge) {
+        6:   58:        return edge == u;
+        -:   59:    });
+        3:   60:    if (it_v != adj[v].end()) {
+        2:   61:        adj[v].erase(it_v, adj[v].end());
+        -:   62:    }
+        3:   63:}
+        -:   64:
+        4:   65:std::vector<Edge> Graph::getEdges() const {
+        4:   66:    std::vector<Edge> edges;
+       23:   67:    for (int i = 0; i < num_vertices; ++i) {
+       61:   68:        for (Edge edge : adj[i]) {
+       42:   69:            edges.push_back(edge);
+        -:   70:        }
+        -:   71:    }
+        4:   72:    return edges;
+    =====:   73:}
+        -:   74:
+        7:   75:Edge& Graph::getEdge(int u, int v) {
+        8:   76:    for (Edge& edge : adj[u]) {
+        8:   77:        if (edge.v == v) {
+        7:   78:            return edge;
+        -:   79:        }
+        -:   80:    }
+    #####:   81:    throw std::out_of_range("Edge does not exist");
+        -:   82:}
+        -:   83:
+        9:   84:std::vector<Edge> Graph::getNeighbors(int u) const {
+        9:   85:    return adj[u];
+        -:   86:}
+        -:   87:
+       10:   88:bool Graph::isConnected() {
+        -:   89:    // use simple dfs, this is an undirected graph
+       10:   90:    std::vector<bool> visited(num_vertices, false);
+       10:   91:    DFS(0, visited);
+        -:   92:
+       49:   93:    for (bool v : visited) {
+       42:   94:        if (!v) {
+        3:   95:            return false;
+        -:   96:        }
+        -:   97:    }
+        -:   98:
+        7:   99:    return true;
+       10:  100:}
+        -:  101:
+        -:  102:// DFS function for a graph
+       39:  103:void Graph::DFS(int v, std::vector<bool>& visited) {
+       39:  104:    visited[v] = true;
+        -:  105:
+        -:  106:    // Visit all neighbors of v
+      117:  107:    for (const Edge& edge : adj[v]) {
+       78:  108:        if (!visited[edge.v]) {
+       29:  109:            DFS(edge.v, visited);
+        -:  110:        }
+        -:  111:    }
+       39:  112:}
+        -:  113:
+       46:  114:int Graph::getNumVertices() const {
+       46:  115:    return num_vertices;
+        -:  116:}

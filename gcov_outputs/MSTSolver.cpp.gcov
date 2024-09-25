@@ -1,0 +1,222 @@
+        -:    0:Source:MSTSolver.cpp
+        -:    1:#include "MSTSolver.hpp"
+        -:    2:#include <algorithm>
+        -:    3:#include <climits>
+        -:    4:#include <set>
+        -:    5:#include <limits>
+        -:    6:#include <tuple>
+        -:    7:
+        -:    8:
+        -:    9:// ---------------------------- Calculate Metrics ----------------------------
+    #####:   10:int MSTSolver::totalWeight(Graph& graph) {
+    #####:   11:    std::vector<Edge> mst = solve(graph);
+    #####:   12:    return totalWeight(mst);
+    #####:   13:}
+        -:   14:
+    #####:   15:int MSTSolver::longestDistance(Graph& graph) {
+    #####:   16:    std::vector<Edge> mst = solve(graph);
+    #####:   17:    return longestDistance(mst);
+    #####:   18:}
+        -:   19:
+    #####:   20:int MSTSolver::shortestDistance(Graph& graph) {
+    #####:   21:    std::vector<Edge> mst = solve(graph);
+    #####:   22:    return shortestDistance(mst);
+    #####:   23:}
+        -:   24:
+    #####:   25:double MSTSolver::averageDistance(Graph& graph) {
+    #####:   26:    std::vector<Edge> mst = solve(graph);
+    #####:   27:    return totalWeight(mst);
+    #####:   28:}
+        -:   29:
+        4:   30:int MSTSolver::totalWeight(std::vector<Edge>& mst){
+        4:   31:    int totalWeight = 0;
+        4:   32:    int numEdges = 0;
+       18:   33:    for (const Edge& edge : mst) {
+       14:   34:        totalWeight += edge.weight;
+       14:   35:        numEdges++;
+        -:   36:    }
+        4:   37:    return static_cast<double>(totalWeight) / numEdges;
+        -:   38:}
+        -:   39:
+        4:   40:int MSTSolver::longestDistance(std::vector<Edge>& mst){
+        4:   41:    int longestDistance = 0;
+       18:   42:    for (const Edge& edge : mst) {
+       14:   43:        longestDistance = std::max(longestDistance, edge.weight);
+        -:   44:    }
+        4:   45:    return longestDistance;
+        -:   46:}
+        -:   47:
+        4:   48:int MSTSolver::shortestDistance(std::vector<Edge>& mst){
+        4:   49:    int shortestDistance = INT_MAX;
+       18:   50:    for (const Edge& edge : mst) {
+       14:   51:        shortestDistance = std::min(shortestDistance, edge.weight);
+        -:   52:    }
+        4:   53:    return shortestDistance;
+        -:   54:}
+        -:   55:
+        4:   56:double MSTSolver::averageDistance(std::vector<Edge>& mst){
+        4:   57:    int totalWeight = 0;
+        4:   58:    int numEdges = 0;
+       18:   59:    for (const Edge& edge : mst) {
+       14:   60:        totalWeight += edge.weight;
+       14:   61:        numEdges++;
+        -:   62:    }
+        4:   63:    return static_cast<double>(totalWeight) / numEdges;
+        -:   64:}
+        -:   65:
+    #####:   66:std::string MSTSolver::printMetrics(Graph& graph){
+    #####:   67:    std::vector<Edge> mst = solve(graph);
+    #####:   68:    return printMetrics(mst);
+    #####:   69:}
+        -:   70:
+        4:   71:std::string MSTSolver::printMetrics(std::vector<Edge>& mst){
+        4:   72:    std::string response = "Metrics:\n";
+        4:   73:    response += "Total weight: " + std::to_string(totalWeight(mst)) + "\n";
+        4:   74:    response += "Longest distance: " + std::to_string(longestDistance(mst)) + "\n";
+        4:   75:    response += "Shortest distance: " + std::to_string(shortestDistance(mst)) + "\n";
+        4:   76:    response += "Average distance: " + std::to_string(averageDistance(mst)) + "\n";
+        4:   77:    return response;
+    =====:   78:}
+        -:   79:
+        -:   80:
+        -:   81:// Helper function to find the root of a set in the disjoint-set/union-find structure
+      167:   82:int find(std::vector<int>& parent, int i) {
+      167:   83:    if (parent[i] != i) {
+       15:   84:        parent[i] = find(parent, parent[i]);
+        -:   85:    }
+      167:   86:    return parent[i];
+        -:   87:}
+        -:   88:
+        -:   89:// Helper function to do union of two subsets in disjoint-set/union-find structure
+       15:   90:void unionSets(std::vector<int>& parent, std::vector<int>& rank, int u, int v) {
+       15:   91:    int rootU = find(parent, u);
+       15:   92:    int rootV = find(parent, v);
+        -:   93:
+       15:   94:    if (rank[rootU] < rank[rootV]) {
+    #####:   95:        parent[rootU] = rootV;
+       15:   96:    } else if (rank[rootU] > rank[rootV]) {
+       11:   97:        parent[rootV] = rootU;
+        -:   98:    } else {
+        4:   99:        parent[rootV] = rootU;
+        4:  100:        rank[rootU]++;
+        -:  101:    }
+       15:  102:}
+        -:  103:
+        -:  104:// Boruvka's algorithm implementation
+        5:  105:std::vector<Edge> BoruvkaSolver::solve(Graph& graph) {
+        5:  106:    if (!graph.isConnected()) {
+        1:  107:        return {};
+        -:  108:    }
+        4:  109:    int numVertices = graph.getNumVertices();
+        4:  110:    std::vector<Edge> mstEdges;
+        4:  111:    std::vector<int> parent(numVertices);
+        4:  112:    std::vector<int> rank(numVertices, 0);
+        -:  113:
+        -:  114:    // Initialize each vertex as its own parent (disjoint sets)
+       23:  115:    for (int i = 0; i < numVertices; ++i) {
+       19:  116:        parent[i] = i;
+        -:  117:    }
+        -:  118:
+        4:  119:    int numComponents = numVertices;
+        -:  120:
+        -:  121:    // Continue until there is only one component
+        8:  122:    while (numComponents > 1) {
+        -:  123:        // Array to store the cheapest outgoing edge for each component
+        4:  124:        std::vector<Edge> cheapestEdge(numVertices, Edge{-1, -1, std::numeric_limits<int>::max()});
+        -:  125:
+        -:  126:        // Traverse all edges and find the cheapest outgoing edge for each component
+       46:  127:        for (const Edge& edge : graph.getEdges()) {
+       42:  128:            int u = edge.u;
+       42:  129:            int v = edge.v;
+       42:  130:            int weight = edge.weight;
+        -:  131:
+        -:  132:            // Find the set (component) for both vertices
+       42:  133:            int setU = find(parent, u);
+       42:  134:            int setV = find(parent, v);
+        -:  135:
+        -:  136:            // We only care about outgoing edges, so ensure u -> v is the correct direction
+       42:  137:            if (setU != setV) {
+        -:  138:                // Update the cheapest outgoing edge for setU
+       42:  139:                if (cheapestEdge[setU].weight > weight) {
+        5:  140:                    cheapestEdge[setU] = edge;
+        -:  141:                }
+        -:  142:                // Update the cheapest outgoing edge for setV
+       42:  143:                if (cheapestEdge[setV].weight > weight) {
+       15:  144:                    cheapestEdge[setV] = edge;
+        -:  145:                }
+        -:  146:            }
+        4:  147:        }
+        -:  148:
+        -:  149:        // Add the cheapest edges to the MST and perform union of sets
+       23:  150:        for (int i = 0; i < numVertices; ++i) {
+       19:  151:            const Edge& edge = cheapestEdge[i];
+        -:  152:
+        -:  153:            // If a valid cheapest edge was found for this component
+       19:  154:            if (edge.u != -1 && edge.v != -1) {
+       19:  155:                int setU = find(parent, edge.u);
+       19:  156:                int setV = find(parent, edge.v);
+        -:  157:
+        -:  158:                // If the components are different, include this edge in MST
+       19:  159:                if (setU != setV) {
+       15:  160:                    mstEdges.push_back(edge);
+       15:  161:                    unionSets(parent, rank, setU, setV);
+       15:  162:                    numComponents--;  // We've merged two components
+        -:  163:                }
+        -:  164:            }
+        -:  165:        }
+        -:  166:
+        -:  167:        // Reset the cheapest edges for the next iteration
+        4:  168:        std::fill(cheapestEdge.begin(), cheapestEdge.end(), Edge{-1, -1, std::numeric_limits<int>::max()});
+        4:  169:    }
+        -:  170:
+        4:  171:    return mstEdges;
+        4:  172:}
+        -:  173:
+        3:  174:std::vector<Edge> PrimSolver::solve(Graph& graph) {
+        3:  175:    if (!graph.isConnected()) {
+        1:  176:        return {};
+        -:  177:    }
+        2:  178:    int numVertices = graph.getNumVertices();
+        -:  179:    
+        2:  180:    std::vector<int> key(numVertices, INT_MAX);  // Key values to pick the minimum edge weight
+        2:  181:    std::vector<bool> inMST(numVertices, false); // To keep track of vertices included in MST
+        2:  182:    std::vector<int> parent(numVertices, -1);    // Array to store the MST
+        2:  183:    std::vector<Edge> mstEdges;
+        -:  184:
+        2:  185:    key[0] = 0; // Start from vertex 0 (arbitrary choice)
+        -:  186:
+        -:  187:    // Min-heap (or set) to get the vertex with the smallest key
+        -:  188:    using Tuple = std::tuple<int, int, int>; // (key, vertex, parent)
+        2:  189:    std::set<Tuple> pq;
+        2:  190:    pq.insert(std::make_tuple(0, 0, -1)); // Starting with vertex 0
+        -:  191:
+       11:  192:    while (!pq.empty()) {
+        -:  193:        // Get the vertex with the smallest key value
+        9:  194:        auto [minKey, u, parent_u] = *pq.begin();
+        9:  195:        pq.erase(pq.begin());
+        -:  196:
+       9*:  197:        if (inMST[u]) continue; // Skip if it's already included
+        9:  198:        inMST[u] = true;  // Mark it as included in the MST
+        -:  199:        
+        -:  200:        // If it's not the starting vertex, add the edge to MST
+        9:  201:        if (parent_u != -1) {
+        7:  202:            mstEdges.push_back(graph.getEdge(u, parent_u)); // Undirected edge between u and parent_u
+        -:  203:        }
+        -:  204:
+        -:  205:        // Loop over all neighbors of u (undirected edges u <-> v)
+       27:  206:        for (const Edge& edge : graph.getNeighbors(u)) {
+       18:  207:            int v = edge.v;
+       18:  208:            int weight = edge.weight;
+        -:  209:
+        -:  210:            // If v is not in MST and weight is smaller, update the key
+       18:  211:            if (!inMST[v] && weight < key[v]) {
+        7:  212:                pq.erase({key[v], v, u}); // Remove if already in the set
+        7:  213:                key[v] = weight;
+        7:  214:                pq.insert({key[v], v, u}); // Add updated key with new parent u
+        7:  215:                parent[v] = u;
+        -:  216:            }
+        9:  217:        }
+        -:  218:    }
+        -:  219:
+        2:  220:    return mstEdges;
+        2:  221:}

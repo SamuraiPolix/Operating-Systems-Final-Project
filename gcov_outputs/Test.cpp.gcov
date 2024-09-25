@@ -1,0 +1,132 @@
+        -:    0:Source:Test.cpp
+        -:    1:#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+        -:    2:#include "doctest.h"
+        -:    3:#include <iostream>
+        -:    4:#include <vector>
+        -:    5:#include "Graph.hpp"
+        -:    6:#include "MSTFactory.hpp"
+        -:    7:#include "MSTSolver.hpp"
+        -:    8:
+        1:    9:TEST_CASE ("Test Non-connected graph") {
+        -:   10:    // Based on test from https://www.geeksforgeeks.org/boruvkas-algorithm-greedy-algo-9/
+        -:   11:    // Create a directed graph with 4 vertices
+        1:   12:    Graph g(4);
+        1:   13:    g.addEdge(0, 1, 10);
+        1:   14:    g.addEdge(2, 3, 4);
+        -:   15:
+       2*:   16:    CHECK(!g.isConnected());
+        -:   17:
+        -:   18:    // Run Boruvka's algo
+        1:   19:    std::vector<Edge> mstEdges = MSTFactory::createSolver(MSTFactory::MSTType::BORUVKA)->solve(g);
+        -:   20:    
+        -:   21:    // Expected edges in the MST (directed)
+        1:   22:    std::vector<Edge> expectedEdges = {};
+        -:   23:
+        -:   24:    // Check the size of the MST
+       2*:   25:    CHECK(mstEdges.size() == expectedEdges.size());
+        -:   26:
+        -:   27:    // Check the content of the MST
+       1*:   28:    for (const Edge& edge : mstEdges) {
+    #####:   29:        bool found = false;
+    #####:   30:        for (const Edge& expected : expectedEdges) {
+    #####:   31:            if (expected.u == edge.u && expected.v == edge.v && expected.weight == edge.weight) {
+    #####:   32:                found = true;
+    #####:   33:                break;
+        -:   34:            }
+        -:   35:        }
+    #####:   36:        std::cout << "Edge: " << edge.u << " -> " << edge.v << " (" << edge.weight << ")\n";        // for debugging
+    #####:   37:        CHECK(found);
+        -:   38:    }
+        -:   39:
+        -:   40:    // Run Prim's algo
+        1:   41:    mstEdges = MSTFactory::createSolver(MSTFactory::MSTType::PRIM)->solve(g);
+        -:   42:
+        -:   43:    // Expected edges in the MST (directed)
+        1:   44:    expectedEdges = {};
+        -:   45:
+        -:   46:    // Check the size of the MST
+       2*:   47:    CHECK(mstEdges.size() == expectedEdges.size());
+        -:   48:    
+        -:   49:    // Check the content of the MST
+       1*:   50:    for (const Edge& edge : mstEdges) {
+    #####:   51:        bool found = false;
+    #####:   52:        for (const Edge& expected : expectedEdges) {
+    #####:   53:            if (expected.u == edge.u && expected.v == edge.v && expected.weight == edge.weight) {
+    #####:   54:                found = true;
+    #####:   55:                break;
+        -:   56:            }
+        -:   57:        }
+    #####:   58:        std::cout << "Edge: " << edge.u << " -> " << edge.v << " (" << edge.weight << ")\n";        // for debugging
+    #####:   59:        CHECK(found);
+        -:   60:    }
+        1:   61:}
+        -:   62:
+        1:   63:TEST_CASE ("Connected graph") {
+        -:   64:    // directed graph but we made each edge bidirectional, connected
+        1:   65:    Graph g(5);
+        1:   66:    g.addEdge(0, 1, 2);
+        1:   67:    g.addEdge(0, 3, 6);
+        1:   68:    g.addEdge(1, 2, 3);
+        1:   69:    g.addEdge(1, 4, 5);
+        1:   70:    g.addEdge(2, 4, 7);
+        1:   71:    g.addEdge(3, 4, 9);
+        -:   72:
+       2*:   73:    CHECK(g.isConnected());
+        -:   74:
+        -:   75:    // Run Boruvka's algo
+        1:   76:    std::vector<Edge> mstEdges = MSTFactory::createSolver(MSTFactory::MSTType::BORUVKA)->solve(g);
+        -:   77:
+        -:   78:    // Expected edges in the MST (directed)
+        -:   79:    std::vector<Edge> expectedEdges = {
+        -:   80:        {0, 1, 2},
+        -:   81:        {1, 2, 3},
+        -:   82:        {0, 3, 6},
+        -:   83:        {1, 4, 5}
+        1:   84:    };
+        -:   85:
+        -:   86:    // Check the size of the MST
+       2*:   87:    CHECK(mstEdges.size() == expectedEdges.size());
+        -:   88:
+        -:   89:    // Check the content of the MST
+        5:   90:    for (const Edge& edge : mstEdges) {
+        4:   91:        bool found = false;
+       10:   92:        for (const Edge& expected : expectedEdges) {
+       10:   93:            if (expected.u == edge.u && expected.v == edge.v && expected.weight == edge.weight) {
+        4:   94:                found = true;
+        4:   95:                break;
+        -:   96:            }
+        -:   97:        }
+        4:   98:        std::cout << "Edge: " << edge.u << " -> " << edge.v << " (" << edge.weight << ")\n";        // for debugging
+       8*:   99:        CHECK(found);
+        -:  100:    }
+        -:  101:
+        -:  102:    // Run Prim's algo
+        1:  103:    mstEdges = MSTFactory::createSolver(MSTFactory::MSTType::PRIM)->solve(g);
+        -:  104:
+        -:  105:    // Check the size of the MST
+       2*:  106:    CHECK(mstEdges.size() == expectedEdges.size());
+        -:  107:
+        -:  108:    // print expected and mst
+        1:  109:    std::cout << "Expected Edges:\n";
+        5:  110:    for (const Edge& edge : expectedEdges) {
+        4:  111:        std::cout << edge.u << " -> " << edge.v << " (" << edge.weight << ")\n";
+        -:  112:    }
+        -:  113:
+        1:  114:    std::cout << "MST Edges:\n";
+        5:  115:    for (const Edge& edge : mstEdges) {
+        4:  116:        std::cout << edge.u << " -> " << edge.v << " (" << edge.weight << ")\n";
+        -:  117:    }
+        -:  118:
+        -:  119:    // Check the content of the MST
+        5:  120:    for (const Edge& edge : mstEdges) {
+        4:  121:        bool found = false;
+       10:  122:        for (const Edge& expected : expectedEdges) {
+       10:  123:            if (expected == edge) {
+        4:  124:                found = true;
+        4:  125:                break;
+        -:  126:            }
+        -:  127:        }
+        4:  128:        std::cout << "Edge: " << edge.u << " -> " << edge.v << " (" << edge.weight << ")\n";        // for debugging
+       8*:  129:        CHECK(found);
+        -:  130:    }
+        1:  131:}

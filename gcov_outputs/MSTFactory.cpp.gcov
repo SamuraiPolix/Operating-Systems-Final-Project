@@ -1,0 +1,14 @@
+        -:    0:Source:MSTFactory.cpp
+        -:    1:#include "MSTFactory.hpp"
+        -:    2:
+        8:    3:std::unique_ptr<MSTSolver> MSTFactory::createSolver(MSTType type) {
+        8:    4:    switch (type) {
+        5:    5:        case BORUVKA:
+        5:    6:            return std::unique_ptr<MSTSolver>(new BoruvkaSolver());
+        3:    7:        case PRIM:
+        3:    8:            return std::unique_ptr<MSTSolver>(new PrimSolver());
+    #####:    9:        default:
+    #####:   10:            std::cout << "Invalid MST type" << std::endl;
+    #####:   11:            return nullptr;
+        -:   12:    }
+        -:   13:}

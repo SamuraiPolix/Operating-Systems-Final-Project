@@ -1,0 +1,55 @@
+        -:    0:Source:MSTSolver.hpp
+        -:    1:#ifndef MST_SOLVER_HPP
+        -:    2:#define MST_SOLVER_HPP
+        -:    3:
+        -:    4:#include <vector>
+        -:    5:#include "Graph.hpp"
+        -:    6:
+        -:    7:class MSTSolver {
+        -:    8:public:
+       8*:    9:    virtual ~MSTSolver() {}
+------------------
+_ZN9MSTSolverD0Ev:
+    #####:    9:    virtual ~MSTSolver() {}
+------------------
+_ZN9MSTSolverD2Ev:
+        8:    9:    virtual ~MSTSolver() {}
+------------------
+        -:   10:    // Solve the MST problem for the given graph
+        -:   11:    virtual std::vector<Edge> solve(Graph& graph) = 0;
+        -:   12:    // Total weight of the MST
+        -:   13:    virtual int totalWeight(Graph& graph);
+        -:   14:    // Longest distance between two vertices
+        -:   15:    virtual int longestDistance(Graph& graph);
+        -:   16:    // Shortest distance between two vertices
+        -:   17:    virtual int shortestDistance(Graph& graph);
+        -:   18:    /*
+        -:   19:     * Average distance between two edges in the graph
+        -:   20:     * assume distance (x,x)=0 for any X, We are interested in avg of all distances Xi,Xj where i=1..n j≥i.
+        -:   21:     */
+        -:   22:    virtual double averageDistance(Graph& graph);
+        -:   23:
+        -:   24:    // if we have the MST, we can calculate the metrics without solving the MST again
+        -:   25:    virtual int totalWeight(std::vector<Edge>& mst);
+        -:   26:    virtual int longestDistance(std::vector<Edge>& mst);
+        -:   27:    virtual int shortestDistance(std::vector<Edge>& mst);
+        -:   28:    virtual double averageDistance(std::vector<Edge>& mst);
+        -:   29:
+        -:   30:    std::string printMetrics(std::vector<Edge>& mst);
+        -:   31:    std::string printMetrics(Graph& graph);
+        -:   32:
+        -:   33:};
+        -:   34:
+        -:   35:class BoruvkaSolver : public MSTSolver {
+        -:   36:public:
+        -:   37:    std::vector<Edge> solve(Graph& graph) override;
+        -:   38:    // virtual int totalWeight(Graph& graph);
+        -:   39:};
+        -:   40:
+        -:   41:class PrimSolver : public MSTSolver {
+        -:   42:public:
+        -:   43:    std::vector<Edge> solve(Graph& graph) override;
+        -:   44:    // virtual int totalWeight(Graph& graph);
+        -:   45:};
+        -:   46:
+        -:   47:#endif // MST_SOLVER_HPP

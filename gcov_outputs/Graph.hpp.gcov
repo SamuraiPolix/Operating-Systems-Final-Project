@@ -1,0 +1,79 @@
+        -:    0:Source:Graph.hpp
+        -:    1:#ifndef GRAPH_HPP
+        -:    2:#define GRAPH_HPP
+        -:    3:
+        -:    4:#include <vector>
+        -:    5:#include <algorithm>
+        -:    6:#include <iostream>
+        -:    7:#include <fstream>      // for the show() function
+        -:    8:#include <stack>
+        -:    9:
+        -:   10:// Edge struct to simplify working with edges - better in terms of readability
+        -:   11:// Not really necessary, we could use std::tuple<int, int, int> instead for all 3 values (which might have been better in terms of memory)
+        -:   12:struct Edge {
+        -:   13:    int u, v, weight;
+      28*:   14:    Edge(int u, int v, int weight) : u(u), v(v), weight(weight) {}
+------------------
+_ZN4EdgeC2Eiii:
+       28:   14:    Edge(int u, int v, int weight) : u(u), v(v), weight(weight) {}
+------------------
+_ZN4EdgeC2Eiii:
+    #####:   14:    Edge(int u, int v, int weight) : u(u), v(v), weight(weight) {}
+------------------
+        -:   15:
+        -:   16:    // Overload the == operator to compare edges
+        -:   17:    bool operator==(const Edge& other) const {
+        -:   18:        return (u == other.u && v == other.v && weight == other.weight) || (u == other.v && v == other.u && weight == other.weight);
+        -:   19:    }
+        -:   20:
+       47:   21:    bool operator==(const int& other) const {
+       47:   22:        return u == other || v == other;
+        -:   23:    }
+        -:   24:
+        -:   25:    inline friend std::ostream& operator<<(std::ostream& os, const Edge& edge) {
+        -:   26:        os << edge.u << " -> " << edge.v << " (" << edge.weight << ")";
+        -:   27:        return os;
+        -:   28:    }
+        -:   29:};
+        -:   30:
+        -:   31:// Weighted, undirected graph class
+        -:   32:class Graph {
+        -:   33:private:
+        -:   34:    int num_vertices;                     // Number of vertices in the graph
+        -:   35:    std::vector<std::vector<Edge>> adj;  // Adjacency list for each vertex
+        -:   36:    
+        -:   37:public:
+        -:   38:    // Constructor to init a graph with the given number of vertices (no edges yet)
+        -:   39:    Graph(int num_vertices);
+        -:   40:    ~Graph();
+        -:   41:
+        -:   42:    // Reset the graph with the given number of vertices
+        -:   43:    void resetGraph(int num_vertices);
+        -:   44:
+        -:   45:    // Add an undirected edge between vertices u and v
+        -:   46:    void addEdge(int u, int v, int weight);
+        -:   47:
+        -:   48:    // Remove an edge between vertices u and v
+        -:   49:    void removeEdge(int u, int v);
+        -:   50:
+        -:   51:    // Get edges for algorithms
+        -:   52:    std::vector<Edge> getEdges() const;
+        -:   53:
+        -:   54:    // Get neighbors of a vertex
+        -:   55:    std::vector<Edge> getNeighbors(int u) const;
+        -:   56:
+        -:   57:    Edge& getEdge(int u, int v);
+        -:   58:
+        -:   59:    // Check if the graph is connected
+        -:   60:    bool isConnected();
+        -:   61:
+        -:   62:    // Get the number of vertices in the graph
+        -:   63:    int getNumVertices() const;
+        -:   64:
+        -:   65:private:
+        -:   66:    // Helper DFS functions to visit all vertices in undirected graph
+        -:   67:    void DFS(int v, std::vector<bool>& visited);
+        -:   68:};
+        -:   69:
+        -:   70:
+        -:   71:#endif // GRAPH_HPP

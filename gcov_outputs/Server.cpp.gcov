@@ -1,0 +1,248 @@
+        -:    0:Source:Server.cpp
+        -:    1:#include <iostream>
+        -:    2:#include <sstream>
+        -:    3:#include <thread>
+        -:    4:#include <mutex>
+        -:    5:#include <condition_variable>
+        -:    6:#include <unordered_map>
+        -:    7:#include <vector>
+        -:    8:#include <string>
+        -:    9:#include <unistd.h>
+        -:   10:#include <sys/socket.h>
+        -:   11:#include <netinet/in.h>
+        -:   12:#include <arpa/inet.h>
+        -:   13:#include <cstring>
+        -:   14:#include <cerrno>
+        -:   15:#include "Graph.hpp"
+        -:   16:#include "MSTFactory.hpp"
+        -:   17:
+        -:   18:using namespace std;        // TODO make it more specific later
+        -:   19:
+        -:   20:// ---------------------------- Constants and Global vars ----------------------------
+        -:   21:#define PORT 9034
+        -:   22:#define MAXCONNECTIONS 10
+        -:   23:#define TIMEOUT_SEC 3
+        -:   24:std::mutex graphMutex;
+        -:   25:Graph graph(0);
+        -:   26:
+        -:   27:// ---------------------------- Declare Functions ----------------------------
+        -:   28:void handle_client_command(int client_socket, const std::string& command);
+        -:   29:void handle_client(int client_socket); 
+        -:   30:
+        -:   31:// ---------------------------- Functions ----------------------------
+        1:   32:void handle_client(int client_socket) {
+        -:   33:    char buffer[1024];
+        -:   34:    int bytesReceived;
+        1:   35:    int expected_edges = 0;
+        -:   36:
+       14:   37:    while ((bytesReceived = recv(client_socket, buffer, 1024, 0)) > 0) {
+       26:   38:        std::istringstream iss(std::string(buffer, bytesReceived));
+       13:   39:        std::string cmd;
+       13:   40:        iss >> cmd;
+        -:   41:
+       13:   42:        std::unique_lock<std::mutex> lock(graphMutex);
+        -:   43:
+       13:   44:        bool validCommand = false;
+        -:   45:
+       13:   46:        if (cmd == "Newgraph") {
+        1:   47:            validCommand = true;
+        -:   48:            int vertices, edges;
+        1:   49:            if (iss >> vertices >> edges) {
+        1:   50:                graph.resetGraph(vertices);
+        1:   51:                std::cout << "Graph created with " << vertices << " vertices. Waiting for " << edges << " edges.\n";
+        2:   52:                std::string response = "Graph created. Send " + std::to_string(edges) + " edges (u v weight).\n";
+        1:   53:                send(client_socket, response.c_str(), response.size(), 0);
+        1:   54:                expected_edges = edges;
+        1:   55:            } else {
+    #####:   56:                std::cout << "Error: Invalid graph command format\n";
+        -:   57:            }
+        -:   58:        }
+        -:   59:        
+       17:   60:        while (expected_edges > 0) {
+        4:   61:            cout << "Waiting for " << expected_edges << " edges...\n";
+        4:   62:            bytesReceived = recv(client_socket, buffer, 1024, 0);
+        4:   63:            if (bytesReceived <= 0) {
+    #####:   64:                std::cout << "Client disconnected.\n";
+    #####:   65:                close(client_socket);
+    #####:   66:                return;       // end client thread
+        -:   67:            }
+        8:   68:            std::istringstream iss(std::string(buffer, bytesReceived));
+        -:   69:            int u, v, weight;
+        4:   70:            iss >> u >> v >> weight;
+        4:   71:            if (expected_edges <= 0) {
+    #####:   72:                break;
+        -:   73:            }
+       4*:   74:            if (u >= 0 && v >= 0 && u < graph.getNumVertices() && v < graph.getNumVertices()) {
+        4:   75:                graph.addEdge(u, v, weight);
+        4:   76:                expected_edges--;
+        4:   77:                std::cout << "Added edge " << u << "<->" << v << " [" << weight << "]. " << expected_edges << " edges remaining.\n";
+        8:   78:                std::string response = "Edge added. " + std::to_string(expected_edges) + " edges remaining.\n";
+        4:   79:                send(client_socket, response.c_str(), response.size(), 0);
+        4:   80:            } else {
+    #####:   81:                std::cout << "Error: Vertex index out of bounds\n";
+        -:   82:            }
+        4:   83:        }
+       13:   84:        lock.unlock();
+        -:   85:        
+       13:   86:        if (cmd == "Newedge") {
+        4:   87:            validCommand = true;
+        -:   88:            int u, v, weight;
+        4:   89:            if (iss >> u >> v >> weight) {
+        3:   90:                if (u >= 0 && v >= 0 && u < graph.getNumVertices() && v < graph.getNumVertices()) {
+        1:   91:                    lock.lock();
+        1:   92:                    graph.addEdge(u, v, weight);
+        1:   93:                    lock.unlock();
+        1:   94:                    std::cout << "Added edge " << u << "<->" << v << " [" << weight << "].\n";
+        -:   95:                } else {
+        2:   96:                    std::cout << "Error: Vertex index out of bounds\n";
+        -:   97:                }
+        -:   98:            } else {
+        1:   99:                std::cout << "Error: Invalid edge command format\n";
+        -:  100:            }
+        -:  101:        }
+        9:  102:        else if (cmd == "Removeedge") {
+        3:  103:            validCommand = true;
+        -:  104:            int u, v;
+        3:  105:            if (iss >> u >> v) {
+        2:  106:                if (u >= 0 && v >= 0 && u < graph.getNumVertices() && v < graph.getNumVertices()) {
+        1:  107:                    lock.lock();
+        1:  108:                    graph.removeEdge(u, v);
+        1:  109:                    lock.unlock();
+        1:  110:                    std::cout << "Removed edge from " << u << " to " << v << ".\n";
+        -:  111:                } else {
+        1:  112:                    std::cout << "Error: Vertex index out of bounds\n";
+        -:  113:                }
+        -:  114:            } else {
+        1:  115:                std::cout << "Error: Invalid edge command format\n";
+        -:  116:            }
+        -:  117:        }
+        6:  118:        else if (cmd == "Boruvka") {
+        1:  119:            validCommand = true;
+        1:  120:            std::unique_ptr<MSTSolver> solver = MSTFactory::createSolver(MSTFactory::BORUVKA);
+        1:  121:            lock.lock();
+        1:  122:            std::vector<Edge> mst = solver->solve(graph);
+        1:  123:            lock.unlock();
+        1:  124:            std::string response = "Minimum Spanning Tree (Boruvka):\n";
+        4:  125:            for (const Edge& edge : mst) {
+        3:  126:                response += std::to_string(edge.u) + " <-> " + std::to_string(edge.v) + " (" + std::to_string(edge.weight) + ")\n";
+        -:  127:            }
+        1:  128:            response += solver->printMetrics(mst);
+        1:  129:            send(client_socket, response.c_str(), response.size(), 0);
+        1:  130:        }
+        5:  131:        else if (cmd == "Prim") {
+        1:  132:            validCommand = true;
+        1:  133:            std::unique_ptr<MSTSolver> solver = MSTFactory::createSolver(MSTFactory::PRIM);
+        1:  134:            lock.lock();
+        1:  135:            std::vector<Edge> mst = solver->solve(graph);
+        1:  136:            lock.unlock();
+        1:  137:            std::string response = "Minimum Spanning Tree (Prim):\n";
+        4:  138:            for (const Edge& edge : mst) {
+        3:  139:                response += std::to_string(edge.u) + " <-> " + std::to_string(edge.v) + " (" + std::to_string(edge.weight) + ")\n";
+        -:  140:            }
+        1:  141:            response += solver->printMetrics(mst);
+        1:  142:            send(client_socket, response.c_str(), response.size(), 0);
+        1:  143:        }
+        4:  144:        else if (!validCommand) {
+        3:  145:            std::cout << "Unknown command.\n";
+        -:  146:        }
+       13:  147:    }
+        1:  148:    std::cout << "Client disconnected.\n";
+        1:  149:    close(client_socket);
+        -:  150:}
+        -:  151:
+        -:  152:
+        -:  153:// ---------------------------- Main ----------------------------
+        1:  154:int main() {
+        -:  155:    // Create a socket
+        1:  156:    int server = socket(AF_INET, SOCK_STREAM, 0);
+        1:  157:    if (server == -1) {
+    #####:  158:        std::cerr << "socket: Could not create socket.\n";
+    #####:  159:        return 1;
+        -:  160:    }
+        -:  161:
+        -:  162:    // Set server address for binding
+        -:  163:    sockaddr_in serverAddr;
+        1:  164:    serverAddr.sin_family = AF_INET;
+        1:  165:    serverAddr.sin_port = htons(PORT);
+        1:  166:    serverAddr.sin_addr.s_addr = INADDR_ANY;
+        -:  167:
+        -:  168:    // Allow reuse of address
+        1:  169:    int yes = 1;
+        1:  170:    if (setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+    #####:  171:        std::cerr << "setsockopt: Could not set socket options.\n";
+    #####:  172:        return 2;
+        -:  173:    }
+        -:  174:
+        -:  175:    // Bind to port
+        1:  176:    if (bind(server, (sockaddr *) &serverAddr, sizeof(serverAddr)) == -1) {
+    #####:  177:        std::cerr << "bind: Could not bind to port " << PORT << ".\n";
+    #####:  178:        return 3;
+        -:  179:    }
+        -:  180:
+        -:  181:    // Listen on port for incoming connections
+        1:  182:    if (listen(server, MAXCONNECTIONS) == -1) {
+    #####:  183:        std::cerr << "listen: Could not listen on port " << PORT << ".\n";
+        -:  184:        // print error
+    #####:  185:        std::cout << "Error: " << strerror(errno) << "\n";
+    #####:  186:        return 4;
+        -:  187:    }
+        -:  188:
+        -:  189:    // Accept incoming connections and open a thread for each client
+        -:  190:    int client;
+        -:  191:    struct sockaddr_in clientAddr;
+        1:  192:    socklen_t clientAddrSize = sizeof(clientAddr);
+        -:  193:
+        1:  194:    std::cout << "Waiting for connections..." << std::endl;
+        1:  195:    std::vector<std::thread> clientThreads;
+        1:  196:    auto lastConnectionTime = std::chrono::steady_clock::now();
+        -:  197:
+        -:  198:    while (true) {
+        -:  199:        fd_set readfds;
+       34:  200:        FD_ZERO(&readfds);
+        2:  201:        FD_SET(server, &readfds);
+        -:  202:
+        -:  203:        struct timeval timeout;
+        2:  204:        timeout.tv_sec = TIMEOUT_SEC;
+        2:  205:        timeout.tv_usec = 0;
+        -:  206:
+        2:  207:        int activity = select(server + 1, &readfds, NULL, NULL, &timeout);
+        -:  208:
+       2*:  209:        if (activity < 0 && errno != EINTR) {
+    #####:  210:            std::cerr << "select error\n";
+    #####:  211:            break;
+        -:  212:        }
+        -:  213:
+        2:  214:        if (activity == 0) { // Timeout
+        1:  215:            auto now = std::chrono::steady_clock::now();        // cpu clock
+       1*:  216:            if (clientThreads.empty() && std::chrono::duration_cast<std::chrono::seconds>(now - lastConnectionTime).count() >= 15) {
+        1:  217:                std::cout << "No connections or threads for " << TIMEOUT_SEC << " seconds. Exiting...\n";
+        1:  218:                break;
+        -:  219:            }
+        1:  220:        } else if (FD_ISSET(server, &readfds)) {
+        1:  221:            if ((client = accept(server, (struct sockaddr*)&clientAddr, &clientAddrSize)) < 0) {
+    #####:  222:                perror("accept");
+    #####:  223:                exit(EXIT_FAILURE);
+        -:  224:            }
+        1:  225:            std::cout << "Client connected, socket " << client << std::endl;
+        1:  226:            std::cout << "Still allowing more connections in the background..." << std::endl;
+        -:  227:
+        -:  228:            // Handle client connection
+        1:  229:            clientThreads.emplace_back(handle_client, client);
+        1:  230:            lastConnectionTime = std::chrono::steady_clock::now();
+        -:  231:            // Remove dead threads from clientThreads
+        2:  232:            for (auto it = clientThreads.begin(); it != clientThreads.end(); ) {
+        1:  233:                if (it->joinable()) {
+        1:  234:                    it->join();
+        1:  235:                    it = clientThreads.erase(it);
+        -:  236:                } else {
+    #####:  237:                    ++it;
+        -:  238:                }
+        -:  239:            }
+        -:  240:        }
+        1:  241:    }
+        -:  242:
+        -:  243:    // Close server socket
+        1:  244:    close(server);
+        -:  245:
+        1:  246:    return 0;
+        1:  247:}

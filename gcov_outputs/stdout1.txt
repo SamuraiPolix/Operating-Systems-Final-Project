@@ -1,0 +1,213 @@
+File 'MSTFactory.cpp'
+Lines executed:66.67% of 9
+Creating 'MSTFactory.cpp.gcov'
+
+File '/usr/include/c++/11/iostream'
+No executable lines
+Removing 'iostream.gcov'
+
+File '/usr/include/c++/11/tuple'
+Lines executed:96.23% of 53
+Creating 'tuple.gcov'
+
+File '/usr/include/c++/11/bits/unique_ptr.h'
+Lines executed:84.62% of 26
+Creating 'unique_ptr.h.gcov'
+
+File 'MSTSolver.hpp'
+Lines executed:100.00% of 1
+Creating 'MSTSolver.hpp.gcov'
+
+File 'Graph.cpp'
+Lines executed:95.45% of 66
+Creating 'Graph.cpp.gcov'
+
+File '/usr/include/c++/11/ext/new_allocator.h'
+Lines executed:84.21% of 19
+Creating 'new_allocator.h.gcov'
+
+File '/usr/include/c++/11/bits/move.h'
+Lines executed:100.00% of 11
+Creating 'move.h.gcov'
+
+File '/usr/include/c++/11/bits/alloc_traits.h'
+Lines executed:100.00% of 17
+Creating 'alloc_traits.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_uninitialized.h'
+Lines executed:100.00% of 51
+Creating 'stl_uninitialized.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_algobase.h'
+Lines executed:51.92% of 104
+Creating 'stl_algobase.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_construct.h'
+Lines executed:100.00% of 14
+Creating 'stl_construct.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_vector.h'
+Lines executed:97.71% of 131
+Creating 'stl_vector.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_iterator.h'
+Lines executed:91.30% of 23
+Creating 'stl_iterator.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_bvector.h'
+Lines executed:93.88% of 98
+Creating 'stl_bvector.h.gcov'
+
+File '/usr/include/c++/11/bits/allocator.h'
+Lines executed:100.00% of 5
+Creating 'allocator.h.gcov'
+
+File '/usr/include/c++/11/bits/cpp_type_traits.h'
+Lines executed:0.00% of 2
+Creating 'cpp_type_traits.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_iterator_base_types.h'
+Lines executed:100.00% of 2
+Creating 'stl_iterator_base_types.h.gcov'
+
+File '/usr/include/c++/11/bits/predefined_ops.h'
+Lines executed:100.00% of 7
+Creating 'predefined_ops.h.gcov'
+
+File '/usr/include/c++/11/bits/vector.tcc'
+Lines executed:77.61% of 67
+Creating 'vector.tcc.gcov'
+
+File '/usr/include/c++/11/ext/alloc_traits.h'
+Lines executed:100.00% of 2
+Creating 'alloc_traits.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_algo.h'
+Lines executed:100.00% of 14
+Creating 'stl_algo.h.gcov'
+
+File 'Graph.hpp'
+Lines executed:100.00% of 3
+Creating 'Graph.hpp.gcov'
+
+File '/usr/include/c++/11/new'
+Lines executed:66.67% of 3
+Creating 'new.gcov'
+
+File 'MSTSolver.cpp'
+Lines executed:83.33% of 132
+Creating 'MSTSolver.cpp.gcov'
+
+File '/usr/include/c++/11/ext/aligned_buffer.h'
+Lines executed:100.00% of 8
+Creating 'aligned_buffer.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_tree.h'
+Lines executed:81.35% of 193
+Creating 'stl_tree.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_iterator_base_funcs.h'
+Lines executed:100.00% of 5
+Creating 'stl_iterator_base_funcs.h.gcov'
+
+File '/usr/include/c++/11/ext/type_traits.h'
+Lines executed:100.00% of 2
+Creating 'type_traits.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_function.h'
+Lines executed:100.00% of 6
+Creating 'stl_function.h.gcov'
+
+File '/usr/include/c++/11/bits/basic_string.tcc'
+Lines executed:69.23% of 13
+Creating 'basic_string.tcc.gcov'
+
+File '/usr/include/c++/11/bits/stl_pair.h'
+Lines executed:50.00% of 4
+Creating 'stl_pair.h.gcov'
+
+File '/usr/include/c++/11/bits/basic_string.h'
+Lines executed:95.24% of 42
+Creating 'basic_string.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_set.h'
+Lines executed:100.00% of 13
+Creating 'stl_set.h.gcov'
+
+File '/usr/include/c++/11/ext/string_conversions.h'
+Lines executed:100.00% of 6
+Creating 'string_conversions.h.gcov'
+
+File '/usr/include/c++/11/bits/charconv.h'
+Lines executed:64.00% of 25
+Creating 'charconv.h.gcov'
+
+File '/usr/include/c++/11/bits/char_traits.h'
+Lines executed:25.00% of 16
+Creating 'char_traits.h.gcov'
+
+File '/usr/include/c++/11/limits'
+Lines executed:100.00% of 1
+Creating 'limits.gcov'
+
+File '/usr/include/c++/11/bits/invoke.h'
+Lines executed:100.00% of 10
+Creating 'invoke.h.gcov'
+
+File '/usr/include/c++/11/bits/std_thread.h'
+Lines executed:96.67% of 30
+Creating 'std_thread.h.gcov'
+
+File '/usr/include/c++/11/bits/deque.tcc'
+Lines executed:12.07% of 58
+Creating 'deque.tcc.gcov'
+
+File '/usr/include/c++/11/bits/stl_deque.h'
+Lines executed:77.27% of 132
+Creating 'stl_deque.h.gcov'
+
+File '/usr/include/c++/11/bits/std_function.h'
+Lines executed:84.88% of 86
+Creating 'std_function.h.gcov'
+
+File '/usr/include/c++/11/bits/unique_lock.h'
+Lines executed:87.50% of 24
+Creating 'unique_lock.h.gcov'
+
+File '/usr/include/c++/11/bits/atomic_base.h'
+Lines executed:100.00% of 13
+Creating 'atomic_base.h.gcov'
+
+File '/usr/include/c++/11/bits/stl_queue.h'
+Lines executed:100.00% of 11
+Creating 'stl_queue.h.gcov'
+
+File '/usr/include/c++/11/condition_variable'
+Lines executed:100.00% of 4
+Creating 'condition_variable.gcov'
+
+File 'ThreadPool.cpp'
+Lines executed:100.00% of 34
+Creating 'ThreadPool.cpp.gcov'
+
+File '/usr/include/c++/11/bits/std_mutex.h'
+Lines executed:90.00% of 10
+Creating 'std_mutex.h.gcov'
+
+File '/usr/include/c++/11/atomic'
+Lines executed:100.00% of 1
+Creating 'atomic.gcov'
+
+File '/usr/include/x86_64-linux-gnu/c++/11/bits/gthr-default.h'
+Lines executed:80.00% of 10
+Creating 'gthr-default.h.gcov'
+
+File 'ThreadPoolServer.cpp'
+Lines executed:85.83% of 127
+Creating 'ThreadPoolServer.cpp.gcov'
+
+File '/usr/include/c++/11/chrono'
+Lines executed:100.00% of 15
+Creating 'chrono.gcov'
+
+Lines executed:82.94% of 1759

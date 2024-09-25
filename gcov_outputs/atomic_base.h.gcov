@@ -1,0 +1,1925 @@
+        -:    0:Source:/usr/include/c++/11/bits/atomic_base.h
+        -:    1:// -*- C++ -*- header.
+        -:    2:
+        -:    3:// Copyright (C) 2008-2021 Free Software Foundation, Inc.
+        -:    4://
+        -:    5:// This file is part of the GNU ISO C++ Library.  This library is free
+        -:    6:// software; you can redistribute it and/or modify it under the
+        -:    7:// terms of the GNU General Public License as published by the
+        -:    8:// Free Software Foundation; either version 3, or (at your option)
+        -:    9:// any later version.
+        -:   10:
+        -:   11:// This library is distributed in the hope that it will be useful,
+        -:   12:// but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   13:// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   14:// GNU General Public License for more details.
+        -:   15:
+        -:   16:// Under Section 7 of GPL version 3, you are granted additional
+        -:   17:// permissions described in the GCC Runtime Library Exception, version
+        -:   18:// 3.1, as published by the Free Software Foundation.
+        -:   19:
+        -:   20:// You should have received a copy of the GNU General Public License and
+        -:   21:// a copy of the GCC Runtime Library Exception along with this program;
+        -:   22:// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+        -:   23:// <http://www.gnu.org/licenses/>.
+        -:   24:
+        -:   25:/** @file bits/atomic_base.h
+        -:   26: *  This is an internal header file, included by other library headers.
+        -:   27: *  Do not attempt to use it directly. @headername{atomic}
+        -:   28: */
+        -:   29:
+        -:   30:#ifndef _GLIBCXX_ATOMIC_BASE_H
+        -:   31:#define _GLIBCXX_ATOMIC_BASE_H 1
+        -:   32:
+        -:   33:#pragma GCC system_header
+        -:   34:
+        -:   35:#include <bits/c++config.h>
+        -:   36:#include <stdint.h>
+        -:   37:#include <bits/atomic_lockfree_defines.h>
+        -:   38:#include <bits/move.h>
+        -:   39:
+        -:   40:#if __cplusplus > 201703L && _GLIBCXX_HOSTED
+        -:   41:#include <bits/atomic_wait.h>
+        -:   42:#endif
+        -:   43:
+        -:   44:#ifndef _GLIBCXX_ALWAYS_INLINE
+        -:   45:#define _GLIBCXX_ALWAYS_INLINE inline __attribute__((__always_inline__))
+        -:   46:#endif
+        -:   47:
+        -:   48:namespace std _GLIBCXX_VISIBILITY(default)
+        -:   49:{
+        -:   50:_GLIBCXX_BEGIN_NAMESPACE_VERSION
+        -:   51:
+        -:   52:  /**
+        -:   53:   * @defgroup atomics Atomics
+        -:   54:   *
+        -:   55:   * Components for performing atomic operations.
+        -:   56:   * @{
+        -:   57:   */
+        -:   58:
+        -:   59:  /// Enumeration for memory_order
+        -:   60:#if __cplusplus > 201703L
+        -:   61:  enum class memory_order : int
+        -:   62:    {
+        -:   63:      relaxed,
+        -:   64:      consume,
+        -:   65:      acquire,
+        -:   66:      release,
+        -:   67:      acq_rel,
+        -:   68:      seq_cst
+        -:   69:    };
+        -:   70:
+        -:   71:  inline constexpr memory_order memory_order_relaxed = memory_order::relaxed;
+        -:   72:  inline constexpr memory_order memory_order_consume = memory_order::consume;
+        -:   73:  inline constexpr memory_order memory_order_acquire = memory_order::acquire;
+        -:   74:  inline constexpr memory_order memory_order_release = memory_order::release;
+        -:   75:  inline constexpr memory_order memory_order_acq_rel = memory_order::acq_rel;
+        -:   76:  inline constexpr memory_order memory_order_seq_cst = memory_order::seq_cst;
+        -:   77:#else
+        -:   78:  typedef enum memory_order
+        -:   79:    {
+        -:   80:      memory_order_relaxed,
+        -:   81:      memory_order_consume,
+        -:   82:      memory_order_acquire,
+        -:   83:      memory_order_release,
+        -:   84:      memory_order_acq_rel,
+        -:   85:      memory_order_seq_cst
+        -:   86:    } memory_order;
+        -:   87:#endif
+        -:   88:
+        -:   89:  enum __memory_order_modifier
+        -:   90:    {
+        -:   91:      __memory_order_mask          = 0x0ffff,
+        -:   92:      __memory_order_modifier_mask = 0xffff0000,
+        -:   93:      __memory_order_hle_acquire   = 0x10000,
+        -:   94:      __memory_order_hle_release   = 0x20000
+        -:   95:    };
+        -:   96:
+        -:   97:  constexpr memory_order
+        -:   98:  operator|(memory_order __m, __memory_order_modifier __mod)
+        -:   99:  {
+        -:  100:    return memory_order(int(__m) | int(__mod));
+        -:  101:  }
+        -:  102:
+        -:  103:  constexpr memory_order
+       32:  104:  operator&(memory_order __m, __memory_order_modifier __mod)
+        -:  105:  {
+       32:  106:    return memory_order(int(__m) & int(__mod));
+        -:  107:  }
+        -:  108:
+        -:  109:  // Drop release ordering as per [atomics.types.operations.req]/21
+        -:  110:  constexpr memory_order
+        -:  111:  __cmpexch_failure_order2(memory_order __m) noexcept
+        -:  112:  {
+        -:  113:    return __m == memory_order_acq_rel ? memory_order_acquire
+        -:  114:      : __m == memory_order_release ? memory_order_relaxed : __m;
+        -:  115:  }
+        -:  116:
+        -:  117:  constexpr memory_order
+        -:  118:  __cmpexch_failure_order(memory_order __m) noexcept
+        -:  119:  {
+        -:  120:    return memory_order(__cmpexch_failure_order2(__m & __memory_order_mask)
+        -:  121:      | __memory_order_modifier(__m & __memory_order_modifier_mask));
+        -:  122:  }
+        -:  123:
+        -:  124:  constexpr bool
+        -:  125:  __is_valid_cmpexch_failure_order(memory_order __m) noexcept
+        -:  126:  {
+        -:  127:    return (__m & __memory_order_mask) != memory_order_release
+        -:  128:	&& (__m & __memory_order_mask) != memory_order_acq_rel;
+        -:  129:  }
+        -:  130:
+        -:  131:  _GLIBCXX_ALWAYS_INLINE void
+        -:  132:  atomic_thread_fence(memory_order __m) noexcept
+        -:  133:  { __atomic_thread_fence(int(__m)); }
+        -:  134:
+        -:  135:  _GLIBCXX_ALWAYS_INLINE void
+        -:  136:  atomic_signal_fence(memory_order __m) noexcept
+        -:  137:  { __atomic_signal_fence(int(__m)); }
+        -:  138:
+        -:  139:  /// kill_dependency
+        -:  140:  template<typename _Tp>
+        -:  141:    inline _Tp
+        -:  142:    kill_dependency(_Tp __y) noexcept
+        -:  143:    {
+        -:  144:      _Tp __ret(__y);
+        -:  145:      return __ret;
+        -:  146:    }
+        -:  147:
+        -:  148:  // Base types for atomics.
+        -:  149:  template<typename _IntTp>
+        -:  150:    struct __atomic_base;
+        -:  151:
+        -:  152:#if __cplusplus <= 201703L
+        -:  153:# define _GLIBCXX20_INIT(I)
+        -:  154:#else
+        -:  155:# define __cpp_lib_atomic_value_initialization 201911L
+        -:  156:# define _GLIBCXX20_INIT(I) = I
+        -:  157:#endif
+        -:  158:
+        -:  159:#define ATOMIC_VAR_INIT(_VI) { _VI }
+        -:  160:
+        -:  161:  template<typename _Tp>
+        -:  162:    struct atomic;
+        -:  163:
+        -:  164:  template<typename _Tp>
+        -:  165:    struct atomic<_Tp*>;
+        -:  166:
+        -:  167:    /* The target's "set" value for test-and-set may not be exactly 1.  */
+        -:  168:#if __GCC_ATOMIC_TEST_AND_SET_TRUEVAL == 1
+        -:  169:    typedef bool __atomic_flag_data_type;
+        -:  170:#else
+        -:  171:    typedef unsigned char __atomic_flag_data_type;
+        -:  172:#endif
+        -:  173:
+        -:  174:  /**
+        -:  175:   *  @brief Base type for atomic_flag.
+        -:  176:   *
+        -:  177:   *  Base type is POD with data, allowing atomic_flag to derive from
+        -:  178:   *  it and meet the standard layout type requirement. In addition to
+        -:  179:   *  compatibility with a C interface, this allows different
+        -:  180:   *  implementations of atomic_flag to use the same atomic operation
+        -:  181:   *  functions, via a standard conversion to the __atomic_flag_base
+        -:  182:   *  argument.
+        -:  183:  */
+        -:  184:  _GLIBCXX_BEGIN_EXTERN_C
+        -:  185:
+        -:  186:  struct __atomic_flag_base
+        -:  187:  {
+        -:  188:    __atomic_flag_data_type _M_i _GLIBCXX20_INIT({});
+        -:  189:  };
+        -:  190:
+        -:  191:  _GLIBCXX_END_EXTERN_C
+        -:  192:
+        -:  193:#define ATOMIC_FLAG_INIT { 0 }
+        -:  194:
+        -:  195:  /// atomic_flag
+        -:  196:  struct atomic_flag : public __atomic_flag_base
+        -:  197:  {
+        -:  198:    atomic_flag() noexcept = default;
+        -:  199:    ~atomic_flag() noexcept = default;
+        -:  200:    atomic_flag(const atomic_flag&) = delete;
+        -:  201:    atomic_flag& operator=(const atomic_flag&) = delete;
+        -:  202:    atomic_flag& operator=(const atomic_flag&) volatile = delete;
+        -:  203:
+        -:  204:    // Conversion to ATOMIC_FLAG_INIT.
+        -:  205:    constexpr atomic_flag(bool __i) noexcept
+        -:  206:      : __atomic_flag_base{ _S_init(__i) }
+        -:  207:    { }
+        -:  208:
+        -:  209:    _GLIBCXX_ALWAYS_INLINE bool
+        -:  210:    test_and_set(memory_order __m = memory_order_seq_cst) noexcept
+        -:  211:    {
+        -:  212:      return __atomic_test_and_set (&_M_i, int(__m));
+        -:  213:    }
+        -:  214:
+        -:  215:    _GLIBCXX_ALWAYS_INLINE bool
+        -:  216:    test_and_set(memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  217:    {
+        -:  218:      return __atomic_test_and_set (&_M_i, int(__m));
+        -:  219:    }
+        -:  220:
+        -:  221:#if __cplusplus > 201703L
+        -:  222:#define __cpp_lib_atomic_flag_test 201907L
+        -:  223:
+        -:  224:    _GLIBCXX_ALWAYS_INLINE bool
+        -:  225:    test(memory_order __m = memory_order_seq_cst) const noexcept
+        -:  226:    {
+        -:  227:      __atomic_flag_data_type __v;
+        -:  228:      __atomic_load(&_M_i, &__v, int(__m));
+        -:  229:      return __v == __GCC_ATOMIC_TEST_AND_SET_TRUEVAL;
+        -:  230:    }
+        -:  231:
+        -:  232:    _GLIBCXX_ALWAYS_INLINE bool
+        -:  233:    test(memory_order __m = memory_order_seq_cst) const volatile noexcept
+        -:  234:    {
+        -:  235:      __atomic_flag_data_type __v;
+        -:  236:      __atomic_load(&_M_i, &__v, int(__m));
+        -:  237:      return __v == __GCC_ATOMIC_TEST_AND_SET_TRUEVAL;
+        -:  238:    }
+        -:  239:
+        -:  240:#if __cpp_lib_atomic_wait
+        -:  241:    _GLIBCXX_ALWAYS_INLINE void
+        -:  242:    wait(bool __old,
+        -:  243:	memory_order __m = memory_order_seq_cst) const noexcept
+        -:  244:    {
+        -:  245:      const __atomic_flag_data_type __v
+        -:  246:	= __old ? __GCC_ATOMIC_TEST_AND_SET_TRUEVAL : 0;
+        -:  247:
+        -:  248:      std::__atomic_wait_address_v(&_M_i, __v,
+        -:  249:	  [__m, this] { return __atomic_load_n(&_M_i, int(__m)); });
+        -:  250:    }
+        -:  251:
+        -:  252:    // TODO add const volatile overload
+        -:  253:
+        -:  254:    _GLIBCXX_ALWAYS_INLINE void
+        -:  255:    notify_one() noexcept
+        -:  256:    { std::__atomic_notify_address(&_M_i, false); }
+        -:  257:
+        -:  258:    // TODO add const volatile overload
+        -:  259:
+        -:  260:    _GLIBCXX_ALWAYS_INLINE void
+        -:  261:    notify_all() noexcept
+        -:  262:    { std::__atomic_notify_address(&_M_i, true); }
+        -:  263:
+        -:  264:    // TODO add const volatile overload
+        -:  265:#endif // __cpp_lib_atomic_wait
+        -:  266:#endif // C++20
+        -:  267:
+        -:  268:    _GLIBCXX_ALWAYS_INLINE void
+        -:  269:    clear(memory_order __m = memory_order_seq_cst) noexcept
+        -:  270:    {
+        -:  271:      memory_order __b __attribute__ ((__unused__))
+        -:  272:	= __m & __memory_order_mask;
+        -:  273:      __glibcxx_assert(__b != memory_order_consume);
+        -:  274:      __glibcxx_assert(__b != memory_order_acquire);
+        -:  275:      __glibcxx_assert(__b != memory_order_acq_rel);
+        -:  276:
+        -:  277:      __atomic_clear (&_M_i, int(__m));
+        -:  278:    }
+        -:  279:
+        -:  280:    _GLIBCXX_ALWAYS_INLINE void
+        -:  281:    clear(memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  282:    {
+        -:  283:      memory_order __b __attribute__ ((__unused__))
+        -:  284:	= __m & __memory_order_mask;
+        -:  285:      __glibcxx_assert(__b != memory_order_consume);
+        -:  286:      __glibcxx_assert(__b != memory_order_acquire);
+        -:  287:      __glibcxx_assert(__b != memory_order_acq_rel);
+        -:  288:
+        -:  289:      __atomic_clear (&_M_i, int(__m));
+        -:  290:    }
+        -:  291:
+        -:  292:  private:
+        -:  293:    static constexpr __atomic_flag_data_type
+        -:  294:    _S_init(bool __i)
+        -:  295:    { return __i ? __GCC_ATOMIC_TEST_AND_SET_TRUEVAL : 0; }
+        -:  296:  };
+        -:  297:
+        -:  298:
+        -:  299:  /// Base class for atomic integrals.
+        -:  300:  //
+        -:  301:  // For each of the integral types, define atomic_[integral type] struct
+        -:  302:  //
+        -:  303:  // atomic_bool     bool
+        -:  304:  // atomic_char     char
+        -:  305:  // atomic_schar    signed char
+        -:  306:  // atomic_uchar    unsigned char
+        -:  307:  // atomic_short    short
+        -:  308:  // atomic_ushort   unsigned short
+        -:  309:  // atomic_int      int
+        -:  310:  // atomic_uint     unsigned int
+        -:  311:  // atomic_long     long
+        -:  312:  // atomic_ulong    unsigned long
+        -:  313:  // atomic_llong    long long
+        -:  314:  // atomic_ullong   unsigned long long
+        -:  315:  // atomic_char8_t  char8_t
+        -:  316:  // atomic_char16_t char16_t
+        -:  317:  // atomic_char32_t char32_t
+        -:  318:  // atomic_wchar_t  wchar_t
+        -:  319:  //
+        -:  320:  // NB: Assuming _ITp is an integral scalar type that is 1, 2, 4, or
+        -:  321:  // 8 bytes, since that is what GCC built-in functions for atomic
+        -:  322:  // memory access expect.
+        -:  323:  template<typename _ITp>
+        -:  324:    struct __atomic_base
+        -:  325:    {
+        -:  326:      using value_type = _ITp;
+        -:  327:      using difference_type = value_type;
+        -:  328:
+        -:  329:    private:
+        -:  330:      typedef _ITp 	__int_type;
+        -:  331:
+        -:  332:      static constexpr int _S_alignment =
+        -:  333:	sizeof(_ITp) > alignof(_ITp) ? sizeof(_ITp) : alignof(_ITp);
+        -:  334:
+        -:  335:      alignas(_S_alignment) __int_type _M_i _GLIBCXX20_INIT(0);
+        -:  336:
+        -:  337:    public:
+        -:  338:      __atomic_base() noexcept = default;
+        -:  339:      ~__atomic_base() noexcept = default;
+        -:  340:      __atomic_base(const __atomic_base&) = delete;
+        -:  341:      __atomic_base& operator=(const __atomic_base&) = delete;
+        -:  342:      __atomic_base& operator=(const __atomic_base&) volatile = delete;
+        -:  343:
+        -:  344:      // Requires __int_type convertible to _M_i.
+        1:  345:      constexpr __atomic_base(__int_type __i) noexcept : _M_i (__i) { }
+        -:  346:
+       32:  347:      operator __int_type() const noexcept
+       32:  348:      { return load(); }
+        -:  349:
+        -:  350:      operator __int_type() const volatile noexcept
+        -:  351:      { return load(); }
+        -:  352:
+        -:  353:      __int_type
+        -:  354:      operator=(__int_type __i) noexcept
+        -:  355:      {
+        -:  356:	store(__i);
+        -:  357:	return __i;
+        -:  358:      }
+        -:  359:
+        -:  360:      __int_type
+        -:  361:      operator=(__int_type __i) volatile noexcept
+        -:  362:      {
+        -:  363:	store(__i);
+        -:  364:	return __i;
+        -:  365:      }
+        -:  366:
+        -:  367:      __int_type
+        1:  368:      operator++(int) noexcept
+        1:  369:      { return fetch_add(1); }
+        -:  370:
+        -:  371:      __int_type
+        -:  372:      operator++(int) volatile noexcept
+        -:  373:      { return fetch_add(1); }
+        -:  374:
+        -:  375:      __int_type
+        1:  376:      operator--(int) noexcept
+        1:  377:      { return fetch_sub(1); }
+        -:  378:
+        -:  379:      __int_type
+        -:  380:      operator--(int) volatile noexcept
+        -:  381:      { return fetch_sub(1); }
+        -:  382:
+        -:  383:      __int_type
+        -:  384:      operator++() noexcept
+        -:  385:      { return __atomic_add_fetch(&_M_i, 1, int(memory_order_seq_cst)); }
+        -:  386:
+        -:  387:      __int_type
+        -:  388:      operator++() volatile noexcept
+        -:  389:      { return __atomic_add_fetch(&_M_i, 1, int(memory_order_seq_cst)); }
+        -:  390:
+        -:  391:      __int_type
+        -:  392:      operator--() noexcept
+        -:  393:      { return __atomic_sub_fetch(&_M_i, 1, int(memory_order_seq_cst)); }
+        -:  394:
+        -:  395:      __int_type
+        -:  396:      operator--() volatile noexcept
+        -:  397:      { return __atomic_sub_fetch(&_M_i, 1, int(memory_order_seq_cst)); }
+        -:  398:
+        -:  399:      __int_type
+        -:  400:      operator+=(__int_type __i) noexcept
+        -:  401:      { return __atomic_add_fetch(&_M_i, __i, int(memory_order_seq_cst)); }
+        -:  402:
+        -:  403:      __int_type
+        -:  404:      operator+=(__int_type __i) volatile noexcept
+        -:  405:      { return __atomic_add_fetch(&_M_i, __i, int(memory_order_seq_cst)); }
+        -:  406:
+        -:  407:      __int_type
+        -:  408:      operator-=(__int_type __i) noexcept
+        -:  409:      { return __atomic_sub_fetch(&_M_i, __i, int(memory_order_seq_cst)); }
+        -:  410:
+        -:  411:      __int_type
+        -:  412:      operator-=(__int_type __i) volatile noexcept
+        -:  413:      { return __atomic_sub_fetch(&_M_i, __i, int(memory_order_seq_cst)); }
+        -:  414:
+        -:  415:      __int_type
+        -:  416:      operator&=(__int_type __i) noexcept
+        -:  417:      { return __atomic_and_fetch(&_M_i, __i, int(memory_order_seq_cst)); }
+        -:  418:
+        -:  419:      __int_type
+        -:  420:      operator&=(__int_type __i) volatile noexcept
+        -:  421:      { return __atomic_and_fetch(&_M_i, __i, int(memory_order_seq_cst)); }
+        -:  422:
+        -:  423:      __int_type
+        -:  424:      operator|=(__int_type __i) noexcept
+        -:  425:      { return __atomic_or_fetch(&_M_i, __i, int(memory_order_seq_cst)); }
+        -:  426:
+        -:  427:      __int_type
+        -:  428:      operator|=(__int_type __i) volatile noexcept
+        -:  429:      { return __atomic_or_fetch(&_M_i, __i, int(memory_order_seq_cst)); }
+        -:  430:
+        -:  431:      __int_type
+        -:  432:      operator^=(__int_type __i) noexcept
+        -:  433:      { return __atomic_xor_fetch(&_M_i, __i, int(memory_order_seq_cst)); }
+        -:  434:
+        -:  435:      __int_type
+        -:  436:      operator^=(__int_type __i) volatile noexcept
+        -:  437:      { return __atomic_xor_fetch(&_M_i, __i, int(memory_order_seq_cst)); }
+        -:  438:
+        -:  439:      bool
+        -:  440:      is_lock_free() const noexcept
+        -:  441:      {
+        -:  442:	// Use a fake, minimally aligned pointer.
+        -:  443:	return __atomic_is_lock_free(sizeof(_M_i),
+        -:  444:	    reinterpret_cast<void *>(-_S_alignment));
+        -:  445:      }
+        -:  446:
+        -:  447:      bool
+        -:  448:      is_lock_free() const volatile noexcept
+        -:  449:      {
+        -:  450:	// Use a fake, minimally aligned pointer.
+        -:  451:	return __atomic_is_lock_free(sizeof(_M_i),
+        -:  452:	    reinterpret_cast<void *>(-_S_alignment));
+        -:  453:      }
+        -:  454:
+        -:  455:      _GLIBCXX_ALWAYS_INLINE void
+        -:  456:      store(__int_type __i, memory_order __m = memory_order_seq_cst) noexcept
+        -:  457:      {
+        -:  458:	memory_order __b __attribute__ ((__unused__))
+        -:  459:	  = __m & __memory_order_mask;
+        -:  460:	__glibcxx_assert(__b != memory_order_acquire);
+        -:  461:	__glibcxx_assert(__b != memory_order_acq_rel);
+        -:  462:	__glibcxx_assert(__b != memory_order_consume);
+        -:  463:
+        -:  464:	__atomic_store_n(&_M_i, __i, int(__m));
+        -:  465:      }
+        -:  466:
+        -:  467:      _GLIBCXX_ALWAYS_INLINE void
+        -:  468:      store(__int_type __i,
+        -:  469:	    memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  470:      {
+        -:  471:	memory_order __b __attribute__ ((__unused__))
+        -:  472:	  = __m & __memory_order_mask;
+        -:  473:	__glibcxx_assert(__b != memory_order_acquire);
+        -:  474:	__glibcxx_assert(__b != memory_order_acq_rel);
+        -:  475:	__glibcxx_assert(__b != memory_order_consume);
+        -:  476:
+        -:  477:	__atomic_store_n(&_M_i, __i, int(__m));
+        -:  478:      }
+        -:  479:
+        -:  480:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  481:      load(memory_order __m = memory_order_seq_cst) const noexcept
+        -:  482:      {
+        -:  483:	memory_order __b __attribute__ ((__unused__))
+       32:  484:	  = __m & __memory_order_mask;
+        -:  485:	__glibcxx_assert(__b != memory_order_release);
+        -:  486:	__glibcxx_assert(__b != memory_order_acq_rel);
+        -:  487:
+       32:  488:	return __atomic_load_n(&_M_i, int(__m));
+        -:  489:      }
+        -:  490:
+        -:  491:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  492:      load(memory_order __m = memory_order_seq_cst) const volatile noexcept
+        -:  493:      {
+        -:  494:	memory_order __b __attribute__ ((__unused__))
+        -:  495:	  = __m & __memory_order_mask;
+        -:  496:	__glibcxx_assert(__b != memory_order_release);
+        -:  497:	__glibcxx_assert(__b != memory_order_acq_rel);
+        -:  498:
+        -:  499:	return __atomic_load_n(&_M_i, int(__m));
+        -:  500:      }
+        -:  501:
+        -:  502:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  503:      exchange(__int_type __i,
+        -:  504:	       memory_order __m = memory_order_seq_cst) noexcept
+        -:  505:      {
+        -:  506:	return __atomic_exchange_n(&_M_i, __i, int(__m));
+        -:  507:      }
+        -:  508:
+        -:  509:
+        -:  510:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  511:      exchange(__int_type __i,
+        -:  512:	       memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  513:      {
+        -:  514:	return __atomic_exchange_n(&_M_i, __i, int(__m));
+        -:  515:      }
+        -:  516:
+        -:  517:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  518:      compare_exchange_weak(__int_type& __i1, __int_type __i2,
+        -:  519:			    memory_order __m1, memory_order __m2) noexcept
+        -:  520:      {
+        -:  521:	__glibcxx_assert(__is_valid_cmpexch_failure_order(__m2));
+        -:  522:
+        -:  523:	return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+        -:  524:					   int(__m1), int(__m2));
+        -:  525:      }
+        -:  526:
+        -:  527:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  528:      compare_exchange_weak(__int_type& __i1, __int_type __i2,
+        -:  529:			    memory_order __m1,
+        -:  530:			    memory_order __m2) volatile noexcept
+        -:  531:      {
+        -:  532:	__glibcxx_assert(__is_valid_cmpexch_failure_order(__m2));
+        -:  533:
+        -:  534:	return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 1,
+        -:  535:					   int(__m1), int(__m2));
+        -:  536:      }
+        -:  537:
+        -:  538:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  539:      compare_exchange_weak(__int_type& __i1, __int_type __i2,
+        -:  540:			    memory_order __m = memory_order_seq_cst) noexcept
+        -:  541:      {
+        -:  542:	return compare_exchange_weak(__i1, __i2, __m,
+        -:  543:				     __cmpexch_failure_order(__m));
+        -:  544:      }
+        -:  545:
+        -:  546:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  547:      compare_exchange_weak(__int_type& __i1, __int_type __i2,
+        -:  548:		   memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  549:      {
+        -:  550:	return compare_exchange_weak(__i1, __i2, __m,
+        -:  551:				     __cmpexch_failure_order(__m));
+        -:  552:      }
+        -:  553:
+        -:  554:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  555:      compare_exchange_strong(__int_type& __i1, __int_type __i2,
+        -:  556:			      memory_order __m1, memory_order __m2) noexcept
+        -:  557:      {
+        -:  558:	__glibcxx_assert(__is_valid_cmpexch_failure_order(__m2));
+        -:  559:
+        -:  560:	return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 0,
+        -:  561:					   int(__m1), int(__m2));
+        -:  562:      }
+        -:  563:
+        -:  564:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  565:      compare_exchange_strong(__int_type& __i1, __int_type __i2,
+        -:  566:			      memory_order __m1,
+        -:  567:			      memory_order __m2) volatile noexcept
+        -:  568:      {
+        -:  569:	__glibcxx_assert(__is_valid_cmpexch_failure_order(__m2));
+        -:  570:
+        -:  571:	return __atomic_compare_exchange_n(&_M_i, &__i1, __i2, 0,
+        -:  572:					   int(__m1), int(__m2));
+        -:  573:      }
+        -:  574:
+        -:  575:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  576:      compare_exchange_strong(__int_type& __i1, __int_type __i2,
+        -:  577:			      memory_order __m = memory_order_seq_cst) noexcept
+        -:  578:      {
+        -:  579:	return compare_exchange_strong(__i1, __i2, __m,
+        -:  580:				       __cmpexch_failure_order(__m));
+        -:  581:      }
+        -:  582:
+        -:  583:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  584:      compare_exchange_strong(__int_type& __i1, __int_type __i2,
+        -:  585:		 memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  586:      {
+        -:  587:	return compare_exchange_strong(__i1, __i2, __m,
+        -:  588:				       __cmpexch_failure_order(__m));
+        -:  589:      }
+        -:  590:
+        -:  591:#if __cpp_lib_atomic_wait
+        -:  592:      _GLIBCXX_ALWAYS_INLINE void
+        -:  593:      wait(__int_type __old,
+        -:  594:	  memory_order __m = memory_order_seq_cst) const noexcept
+        -:  595:      {
+        -:  596:	std::__atomic_wait_address_v(&_M_i, __old,
+        -:  597:			   [__m, this] { return this->load(__m); });
+        -:  598:      }
+        -:  599:
+        -:  600:      // TODO add const volatile overload
+        -:  601:
+        -:  602:      _GLIBCXX_ALWAYS_INLINE void
+        -:  603:      notify_one() noexcept
+        -:  604:      { std::__atomic_notify_address(&_M_i, false); }
+        -:  605:
+        -:  606:      // TODO add const volatile overload
+        -:  607:
+        -:  608:      _GLIBCXX_ALWAYS_INLINE void
+        -:  609:      notify_all() noexcept
+        -:  610:      { std::__atomic_notify_address(&_M_i, true); }
+        -:  611:
+        -:  612:      // TODO add const volatile overload
+        -:  613:#endif // __cpp_lib_atomic_wait
+        -:  614:
+        -:  615:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  616:      fetch_add(__int_type __i,
+        -:  617:		memory_order __m = memory_order_seq_cst) noexcept
+        1:  618:      { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+        -:  619:
+        -:  620:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  621:      fetch_add(__int_type __i,
+        -:  622:		memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  623:      { return __atomic_fetch_add(&_M_i, __i, int(__m)); }
+        -:  624:
+        -:  625:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  626:      fetch_sub(__int_type __i,
+        -:  627:		memory_order __m = memory_order_seq_cst) noexcept
+        1:  628:      { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+        -:  629:
+        -:  630:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  631:      fetch_sub(__int_type __i,
+        -:  632:		memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  633:      { return __atomic_fetch_sub(&_M_i, __i, int(__m)); }
+        -:  634:
+        -:  635:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  636:      fetch_and(__int_type __i,
+        -:  637:		memory_order __m = memory_order_seq_cst) noexcept
+        -:  638:      { return __atomic_fetch_and(&_M_i, __i, int(__m)); }
+        -:  639:
+        -:  640:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  641:      fetch_and(__int_type __i,
+        -:  642:		memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  643:      { return __atomic_fetch_and(&_M_i, __i, int(__m)); }
+        -:  644:
+        -:  645:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  646:      fetch_or(__int_type __i,
+        -:  647:	       memory_order __m = memory_order_seq_cst) noexcept
+        -:  648:      { return __atomic_fetch_or(&_M_i, __i, int(__m)); }
+        -:  649:
+        -:  650:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  651:      fetch_or(__int_type __i,
+        -:  652:	       memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  653:      { return __atomic_fetch_or(&_M_i, __i, int(__m)); }
+        -:  654:
+        -:  655:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  656:      fetch_xor(__int_type __i,
+        -:  657:		memory_order __m = memory_order_seq_cst) noexcept
+        -:  658:      { return __atomic_fetch_xor(&_M_i, __i, int(__m)); }
+        -:  659:
+        -:  660:      _GLIBCXX_ALWAYS_INLINE __int_type
+        -:  661:      fetch_xor(__int_type __i,
+        -:  662:		memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  663:      { return __atomic_fetch_xor(&_M_i, __i, int(__m)); }
+        -:  664:    };
+        -:  665:
+        -:  666:
+        -:  667:  /// Partial specialization for pointer types.
+        -:  668:  template<typename _PTp>
+        -:  669:    struct __atomic_base<_PTp*>
+        -:  670:    {
+        -:  671:    private:
+        -:  672:      typedef _PTp* 	__pointer_type;
+        -:  673:
+        -:  674:      __pointer_type 	_M_p _GLIBCXX20_INIT(nullptr);
+        -:  675:
+        -:  676:      // Factored out to facilitate explicit specialization.
+        -:  677:      constexpr ptrdiff_t
+        -:  678:      _M_type_size(ptrdiff_t __d) const { return __d * sizeof(_PTp); }
+        -:  679:
+        -:  680:      constexpr ptrdiff_t
+        -:  681:      _M_type_size(ptrdiff_t __d) const volatile { return __d * sizeof(_PTp); }
+        -:  682:
+        -:  683:    public:
+        -:  684:      __atomic_base() noexcept = default;
+        -:  685:      ~__atomic_base() noexcept = default;
+        -:  686:      __atomic_base(const __atomic_base&) = delete;
+        -:  687:      __atomic_base& operator=(const __atomic_base&) = delete;
+        -:  688:      __atomic_base& operator=(const __atomic_base&) volatile = delete;
+        -:  689:
+        -:  690:      // Requires __pointer_type convertible to _M_p.
+        -:  691:      constexpr __atomic_base(__pointer_type __p) noexcept : _M_p (__p) { }
+        -:  692:
+        -:  693:      operator __pointer_type() const noexcept
+        -:  694:      { return load(); }
+        -:  695:
+        -:  696:      operator __pointer_type() const volatile noexcept
+        -:  697:      { return load(); }
+        -:  698:
+        -:  699:      __pointer_type
+        -:  700:      operator=(__pointer_type __p) noexcept
+        -:  701:      {
+        -:  702:	store(__p);
+        -:  703:	return __p;
+        -:  704:      }
+        -:  705:
+        -:  706:      __pointer_type
+        -:  707:      operator=(__pointer_type __p) volatile noexcept
+        -:  708:      {
+        -:  709:	store(__p);
+        -:  710:	return __p;
+        -:  711:      }
+        -:  712:
+        -:  713:      __pointer_type
+        -:  714:      operator++(int) noexcept
+        -:  715:      { return fetch_add(1); }
+        -:  716:
+        -:  717:      __pointer_type
+        -:  718:      operator++(int) volatile noexcept
+        -:  719:      { return fetch_add(1); }
+        -:  720:
+        -:  721:      __pointer_type
+        -:  722:      operator--(int) noexcept
+        -:  723:      { return fetch_sub(1); }
+        -:  724:
+        -:  725:      __pointer_type
+        -:  726:      operator--(int) volatile noexcept
+        -:  727:      { return fetch_sub(1); }
+        -:  728:
+        -:  729:      __pointer_type
+        -:  730:      operator++() noexcept
+        -:  731:      { return __atomic_add_fetch(&_M_p, _M_type_size(1),
+        -:  732:				  int(memory_order_seq_cst)); }
+        -:  733:
+        -:  734:      __pointer_type
+        -:  735:      operator++() volatile noexcept
+        -:  736:      { return __atomic_add_fetch(&_M_p, _M_type_size(1),
+        -:  737:				  int(memory_order_seq_cst)); }
+        -:  738:
+        -:  739:      __pointer_type
+        -:  740:      operator--() noexcept
+        -:  741:      { return __atomic_sub_fetch(&_M_p, _M_type_size(1),
+        -:  742:				  int(memory_order_seq_cst)); }
+        -:  743:
+        -:  744:      __pointer_type
+        -:  745:      operator--() volatile noexcept
+        -:  746:      { return __atomic_sub_fetch(&_M_p, _M_type_size(1),
+        -:  747:				  int(memory_order_seq_cst)); }
+        -:  748:
+        -:  749:      __pointer_type
+        -:  750:      operator+=(ptrdiff_t __d) noexcept
+        -:  751:      { return __atomic_add_fetch(&_M_p, _M_type_size(__d),
+        -:  752:				  int(memory_order_seq_cst)); }
+        -:  753:
+        -:  754:      __pointer_type
+        -:  755:      operator+=(ptrdiff_t __d) volatile noexcept
+        -:  756:      { return __atomic_add_fetch(&_M_p, _M_type_size(__d),
+        -:  757:				  int(memory_order_seq_cst)); }
+        -:  758:
+        -:  759:      __pointer_type
+        -:  760:      operator-=(ptrdiff_t __d) noexcept
+        -:  761:      { return __atomic_sub_fetch(&_M_p, _M_type_size(__d),
+        -:  762:				  int(memory_order_seq_cst)); }
+        -:  763:
+        -:  764:      __pointer_type
+        -:  765:      operator-=(ptrdiff_t __d) volatile noexcept
+        -:  766:      { return __atomic_sub_fetch(&_M_p, _M_type_size(__d),
+        -:  767:				  int(memory_order_seq_cst)); }
+        -:  768:
+        -:  769:      bool
+        -:  770:      is_lock_free() const noexcept
+        -:  771:      {
+        -:  772:	// Produce a fake, minimally aligned pointer.
+        -:  773:	return __atomic_is_lock_free(sizeof(_M_p),
+        -:  774:	    reinterpret_cast<void *>(-__alignof(_M_p)));
+        -:  775:      }
+        -:  776:
+        -:  777:      bool
+        -:  778:      is_lock_free() const volatile noexcept
+        -:  779:      {
+        -:  780:	// Produce a fake, minimally aligned pointer.
+        -:  781:	return __atomic_is_lock_free(sizeof(_M_p),
+        -:  782:	    reinterpret_cast<void *>(-__alignof(_M_p)));
+        -:  783:      }
+        -:  784:
+        -:  785:      _GLIBCXX_ALWAYS_INLINE void
+        -:  786:      store(__pointer_type __p,
+        -:  787:	    memory_order __m = memory_order_seq_cst) noexcept
+        -:  788:      {
+        -:  789:	memory_order __b __attribute__ ((__unused__))
+        -:  790:	  = __m & __memory_order_mask;
+        -:  791:
+        -:  792:	__glibcxx_assert(__b != memory_order_acquire);
+        -:  793:	__glibcxx_assert(__b != memory_order_acq_rel);
+        -:  794:	__glibcxx_assert(__b != memory_order_consume);
+        -:  795:
+        -:  796:	__atomic_store_n(&_M_p, __p, int(__m));
+        -:  797:      }
+        -:  798:
+        -:  799:      _GLIBCXX_ALWAYS_INLINE void
+        -:  800:      store(__pointer_type __p,
+        -:  801:	    memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  802:      {
+        -:  803:	memory_order __b __attribute__ ((__unused__))
+        -:  804:	  = __m & __memory_order_mask;
+        -:  805:	__glibcxx_assert(__b != memory_order_acquire);
+        -:  806:	__glibcxx_assert(__b != memory_order_acq_rel);
+        -:  807:	__glibcxx_assert(__b != memory_order_consume);
+        -:  808:
+        -:  809:	__atomic_store_n(&_M_p, __p, int(__m));
+        -:  810:      }
+        -:  811:
+        -:  812:      _GLIBCXX_ALWAYS_INLINE __pointer_type
+        -:  813:      load(memory_order __m = memory_order_seq_cst) const noexcept
+        -:  814:      {
+        -:  815:	memory_order __b __attribute__ ((__unused__))
+        -:  816:	  = __m & __memory_order_mask;
+        -:  817:	__glibcxx_assert(__b != memory_order_release);
+        -:  818:	__glibcxx_assert(__b != memory_order_acq_rel);
+        -:  819:
+        -:  820:	return __atomic_load_n(&_M_p, int(__m));
+        -:  821:      }
+        -:  822:
+        -:  823:      _GLIBCXX_ALWAYS_INLINE __pointer_type
+        -:  824:      load(memory_order __m = memory_order_seq_cst) const volatile noexcept
+        -:  825:      {
+        -:  826:	memory_order __b __attribute__ ((__unused__))
+        -:  827:	  = __m & __memory_order_mask;
+        -:  828:	__glibcxx_assert(__b != memory_order_release);
+        -:  829:	__glibcxx_assert(__b != memory_order_acq_rel);
+        -:  830:
+        -:  831:	return __atomic_load_n(&_M_p, int(__m));
+        -:  832:      }
+        -:  833:
+        -:  834:      _GLIBCXX_ALWAYS_INLINE __pointer_type
+        -:  835:      exchange(__pointer_type __p,
+        -:  836:	       memory_order __m = memory_order_seq_cst) noexcept
+        -:  837:      {
+        -:  838:	return __atomic_exchange_n(&_M_p, __p, int(__m));
+        -:  839:      }
+        -:  840:
+        -:  841:
+        -:  842:      _GLIBCXX_ALWAYS_INLINE __pointer_type
+        -:  843:      exchange(__pointer_type __p,
+        -:  844:	       memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  845:      {
+        -:  846:	return __atomic_exchange_n(&_M_p, __p, int(__m));
+        -:  847:      }
+        -:  848:
+        -:  849:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  850:      compare_exchange_strong(__pointer_type& __p1, __pointer_type __p2,
+        -:  851:			      memory_order __m1,
+        -:  852:			      memory_order __m2) noexcept
+        -:  853:      {
+        -:  854:	__glibcxx_assert(__is_valid_cmpexch_failure_order(__m2));
+        -:  855:
+        -:  856:	return __atomic_compare_exchange_n(&_M_p, &__p1, __p2, 0,
+        -:  857:					   int(__m1), int(__m2));
+        -:  858:      }
+        -:  859:
+        -:  860:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  861:      compare_exchange_strong(__pointer_type& __p1, __pointer_type __p2,
+        -:  862:			      memory_order __m1,
+        -:  863:			      memory_order __m2) volatile noexcept
+        -:  864:      {
+        -:  865:	__glibcxx_assert(__is_valid_cmpexch_failure_order(__m2));
+        -:  866:
+        -:  867:	return __atomic_compare_exchange_n(&_M_p, &__p1, __p2, 0,
+        -:  868:					   int(__m1), int(__m2));
+        -:  869:      }
+        -:  870:
+        -:  871:#if __cpp_lib_atomic_wait
+        -:  872:      _GLIBCXX_ALWAYS_INLINE void
+        -:  873:      wait(__pointer_type __old,
+        -:  874:	   memory_order __m = memory_order_seq_cst) const noexcept
+        -:  875:      {
+        -:  876:	std::__atomic_wait_address_v(&_M_p, __old,
+        -:  877:				     [__m, this]
+        -:  878:				     { return this->load(__m); });
+        -:  879:      }
+        -:  880:
+        -:  881:      // TODO add const volatile overload
+        -:  882:
+        -:  883:      _GLIBCXX_ALWAYS_INLINE void
+        -:  884:      notify_one() const noexcept
+        -:  885:      { std::__atomic_notify_address(&_M_p, false); }
+        -:  886:
+        -:  887:      // TODO add const volatile overload
+        -:  888:
+        -:  889:      _GLIBCXX_ALWAYS_INLINE void
+        -:  890:      notify_all() const noexcept
+        -:  891:      { std::__atomic_notify_address(&_M_p, true); }
+        -:  892:
+        -:  893:      // TODO add const volatile overload
+        -:  894:#endif // __cpp_lib_atomic_wait
+        -:  895:
+        -:  896:      _GLIBCXX_ALWAYS_INLINE __pointer_type
+        -:  897:      fetch_add(ptrdiff_t __d,
+        -:  898:		memory_order __m = memory_order_seq_cst) noexcept
+        -:  899:      { return __atomic_fetch_add(&_M_p, _M_type_size(__d), int(__m)); }
+        -:  900:
+        -:  901:      _GLIBCXX_ALWAYS_INLINE __pointer_type
+        -:  902:      fetch_add(ptrdiff_t __d,
+        -:  903:		memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  904:      { return __atomic_fetch_add(&_M_p, _M_type_size(__d), int(__m)); }
+        -:  905:
+        -:  906:      _GLIBCXX_ALWAYS_INLINE __pointer_type
+        -:  907:      fetch_sub(ptrdiff_t __d,
+        -:  908:		memory_order __m = memory_order_seq_cst) noexcept
+        -:  909:      { return __atomic_fetch_sub(&_M_p, _M_type_size(__d), int(__m)); }
+        -:  910:
+        -:  911:      _GLIBCXX_ALWAYS_INLINE __pointer_type
+        -:  912:      fetch_sub(ptrdiff_t __d,
+        -:  913:		memory_order __m = memory_order_seq_cst) volatile noexcept
+        -:  914:      { return __atomic_fetch_sub(&_M_p, _M_type_size(__d), int(__m)); }
+        -:  915:    };
+        -:  916:
+        -:  917:#if __cplusplus > 201703L
+        -:  918:  // Implementation details of atomic_ref and atomic<floating-point>.
+        -:  919:  namespace __atomic_impl
+        -:  920:  {
+        -:  921:    // Remove volatile and create a non-deduced context for value arguments.
+        -:  922:    template<typename _Tp>
+        -:  923:      using _Val = remove_volatile_t<_Tp>;
+        -:  924:
+        -:  925:    // As above, but for difference_type arguments.
+        -:  926:    template<typename _Tp>
+        -:  927:      using _Diff = conditional_t<is_pointer_v<_Tp>, ptrdiff_t, _Val<_Tp>>;
+        -:  928:
+        -:  929:    template<size_t _Size, size_t _Align>
+        -:  930:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  931:      is_lock_free() noexcept
+        -:  932:      {
+        -:  933:	// Produce a fake, minimally aligned pointer.
+        -:  934:	return __atomic_is_lock_free(_Size, reinterpret_cast<void *>(-_Align));
+        -:  935:      }
+        -:  936:
+        -:  937:    template<typename _Tp>
+        -:  938:      _GLIBCXX_ALWAYS_INLINE void
+        -:  939:      store(_Tp* __ptr, _Val<_Tp> __t, memory_order __m) noexcept
+        -:  940:      { __atomic_store(__ptr, std::__addressof(__t), int(__m)); }
+        -:  941:
+        -:  942:    template<typename _Tp>
+        -:  943:      _GLIBCXX_ALWAYS_INLINE _Val<_Tp>
+        -:  944:      load(const _Tp* __ptr, memory_order __m) noexcept
+        -:  945:      {
+        -:  946:	alignas(_Tp) unsigned char __buf[sizeof(_Tp)];
+        -:  947:	auto* __dest = reinterpret_cast<_Val<_Tp>*>(__buf);
+        -:  948:	__atomic_load(__ptr, __dest, int(__m));
+        -:  949:	return *__dest;
+        -:  950:      }
+        -:  951:
+        -:  952:    template<typename _Tp>
+        -:  953:      _GLIBCXX_ALWAYS_INLINE _Val<_Tp>
+        -:  954:      exchange(_Tp* __ptr, _Val<_Tp> __desired, memory_order __m) noexcept
+        -:  955:      {
+        -:  956:        alignas(_Tp) unsigned char __buf[sizeof(_Tp)];
+        -:  957:	auto* __dest = reinterpret_cast<_Val<_Tp>*>(__buf);
+        -:  958:	__atomic_exchange(__ptr, std::__addressof(__desired), __dest, int(__m));
+        -:  959:	return *__dest;
+        -:  960:      }
+        -:  961:
+        -:  962:    template<typename _Tp>
+        -:  963:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  964:      compare_exchange_weak(_Tp* __ptr, _Val<_Tp>& __expected,
+        -:  965:			    _Val<_Tp> __desired, memory_order __success,
+        -:  966:			    memory_order __failure) noexcept
+        -:  967:      {
+        -:  968:	__glibcxx_assert(__is_valid_cmpexch_failure_order(__failure));
+        -:  969:
+        -:  970:	return __atomic_compare_exchange(__ptr, std::__addressof(__expected),
+        -:  971:					 std::__addressof(__desired), true,
+        -:  972:					 int(__success), int(__failure));
+        -:  973:      }
+        -:  974:
+        -:  975:    template<typename _Tp>
+        -:  976:      _GLIBCXX_ALWAYS_INLINE bool
+        -:  977:      compare_exchange_strong(_Tp* __ptr, _Val<_Tp>& __expected,
+        -:  978:			      _Val<_Tp> __desired, memory_order __success,
+        -:  979:			      memory_order __failure) noexcept
+        -:  980:      {
+        -:  981:	__glibcxx_assert(__is_valid_cmpexch_failure_order(__failure));
+        -:  982:
+        -:  983:	return __atomic_compare_exchange(__ptr, std::__addressof(__expected),
+        -:  984:					 std::__addressof(__desired), false,
+        -:  985:					 int(__success), int(__failure));
+        -:  986:      }
+        -:  987:
+        -:  988:#if __cpp_lib_atomic_wait
+        -:  989:    template<typename _Tp>
+        -:  990:      _GLIBCXX_ALWAYS_INLINE void
+        -:  991:      wait(const _Tp* __ptr, _Val<_Tp> __old,
+        -:  992:	   memory_order __m = memory_order_seq_cst) noexcept
+        -:  993:      {
+        -:  994:	std::__atomic_wait_address_v(__ptr, __old,
+        -:  995:	    [__ptr, __m]() { return __atomic_impl::load(__ptr, __m); });
+        -:  996:      }
+        -:  997:
+        -:  998:      // TODO add const volatile overload
+        -:  999:
+        -: 1000:    template<typename _Tp>
+        -: 1001:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1002:      notify_one(const _Tp* __ptr) noexcept
+        -: 1003:      { std::__atomic_notify_address(__ptr, false); }
+        -: 1004:
+        -: 1005:      // TODO add const volatile overload
+        -: 1006:
+        -: 1007:    template<typename _Tp>
+        -: 1008:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1009:      notify_all(const _Tp* __ptr) noexcept
+        -: 1010:      { std::__atomic_notify_address(__ptr, true); }
+        -: 1011:
+        -: 1012:      // TODO add const volatile overload
+        -: 1013:#endif // __cpp_lib_atomic_wait
+        -: 1014:
+        -: 1015:    template<typename _Tp>
+        -: 1016:      _GLIBCXX_ALWAYS_INLINE _Tp
+        -: 1017:      fetch_add(_Tp* __ptr, _Diff<_Tp> __i, memory_order __m) noexcept
+        -: 1018:      { return __atomic_fetch_add(__ptr, __i, int(__m)); }
+        -: 1019:
+        -: 1020:    template<typename _Tp>
+        -: 1021:      _GLIBCXX_ALWAYS_INLINE _Tp
+        -: 1022:      fetch_sub(_Tp* __ptr, _Diff<_Tp> __i, memory_order __m) noexcept
+        -: 1023:      { return __atomic_fetch_sub(__ptr, __i, int(__m)); }
+        -: 1024:
+        -: 1025:    template<typename _Tp>
+        -: 1026:      _GLIBCXX_ALWAYS_INLINE _Tp
+        -: 1027:      fetch_and(_Tp* __ptr, _Val<_Tp> __i, memory_order __m) noexcept
+        -: 1028:      { return __atomic_fetch_and(__ptr, __i, int(__m)); }
+        -: 1029:
+        -: 1030:    template<typename _Tp>
+        -: 1031:      _GLIBCXX_ALWAYS_INLINE _Tp
+        -: 1032:      fetch_or(_Tp* __ptr, _Val<_Tp> __i, memory_order __m) noexcept
+        -: 1033:      { return __atomic_fetch_or(__ptr, __i, int(__m)); }
+        -: 1034:
+        -: 1035:    template<typename _Tp>
+        -: 1036:      _GLIBCXX_ALWAYS_INLINE _Tp
+        -: 1037:      fetch_xor(_Tp* __ptr, _Val<_Tp> __i, memory_order __m) noexcept
+        -: 1038:      { return __atomic_fetch_xor(__ptr, __i, int(__m)); }
+        -: 1039:
+        -: 1040:    template<typename _Tp>
+        -: 1041:      _GLIBCXX_ALWAYS_INLINE _Tp
+        -: 1042:      __add_fetch(_Tp* __ptr, _Diff<_Tp> __i) noexcept
+        -: 1043:      { return __atomic_add_fetch(__ptr, __i, __ATOMIC_SEQ_CST); }
+        -: 1044:
+        -: 1045:    template<typename _Tp>
+        -: 1046:      _GLIBCXX_ALWAYS_INLINE _Tp
+        -: 1047:      __sub_fetch(_Tp* __ptr, _Diff<_Tp> __i) noexcept
+        -: 1048:      { return __atomic_sub_fetch(__ptr, __i, __ATOMIC_SEQ_CST); }
+        -: 1049:
+        -: 1050:    template<typename _Tp>
+        -: 1051:      _GLIBCXX_ALWAYS_INLINE _Tp
+        -: 1052:      __and_fetch(_Tp* __ptr, _Val<_Tp> __i) noexcept
+        -: 1053:      { return __atomic_and_fetch(__ptr, __i, __ATOMIC_SEQ_CST); }
+        -: 1054:
+        -: 1055:    template<typename _Tp>
+        -: 1056:      _GLIBCXX_ALWAYS_INLINE _Tp
+        -: 1057:      __or_fetch(_Tp* __ptr, _Val<_Tp> __i) noexcept
+        -: 1058:      { return __atomic_or_fetch(__ptr, __i, __ATOMIC_SEQ_CST); }
+        -: 1059:
+        -: 1060:    template<typename _Tp>
+        -: 1061:      _GLIBCXX_ALWAYS_INLINE _Tp
+        -: 1062:      __xor_fetch(_Tp* __ptr, _Val<_Tp> __i) noexcept
+        -: 1063:      { return __atomic_xor_fetch(__ptr, __i, __ATOMIC_SEQ_CST); }
+        -: 1064:
+        -: 1065:    template<typename _Tp>
+        -: 1066:      _Tp
+        -: 1067:      __fetch_add_flt(_Tp* __ptr, _Val<_Tp> __i, memory_order __m) noexcept
+        -: 1068:      {
+        -: 1069:	_Val<_Tp> __oldval = load(__ptr, memory_order_relaxed);
+        -: 1070:	_Val<_Tp> __newval = __oldval + __i;
+        -: 1071:	while (!compare_exchange_weak(__ptr, __oldval, __newval, __m,
+        -: 1072:				      memory_order_relaxed))
+        -: 1073:	  __newval = __oldval + __i;
+        -: 1074:	return __oldval;
+        -: 1075:      }
+        -: 1076:
+        -: 1077:    template<typename _Tp>
+        -: 1078:      _Tp
+        -: 1079:      __fetch_sub_flt(_Tp* __ptr, _Val<_Tp> __i, memory_order __m) noexcept
+        -: 1080:      {
+        -: 1081:	_Val<_Tp> __oldval = load(__ptr, memory_order_relaxed);
+        -: 1082:	_Val<_Tp> __newval = __oldval - __i;
+        -: 1083:	while (!compare_exchange_weak(__ptr, __oldval, __newval, __m,
+        -: 1084:				      memory_order_relaxed))
+        -: 1085:	  __newval = __oldval - __i;
+        -: 1086:	return __oldval;
+        -: 1087:      }
+        -: 1088:
+        -: 1089:    template<typename _Tp>
+        -: 1090:      _Tp
+        -: 1091:      __add_fetch_flt(_Tp* __ptr, _Val<_Tp> __i) noexcept
+        -: 1092:      {
+        -: 1093:	_Val<_Tp> __oldval = load(__ptr, memory_order_relaxed);
+        -: 1094:	_Val<_Tp> __newval = __oldval + __i;
+        -: 1095:	while (!compare_exchange_weak(__ptr, __oldval, __newval,
+        -: 1096:				      memory_order_seq_cst,
+        -: 1097:				      memory_order_relaxed))
+        -: 1098:	  __newval = __oldval + __i;
+        -: 1099:	return __newval;
+        -: 1100:      }
+        -: 1101:
+        -: 1102:    template<typename _Tp>
+        -: 1103:      _Tp
+        -: 1104:      __sub_fetch_flt(_Tp* __ptr, _Val<_Tp> __i) noexcept
+        -: 1105:      {
+        -: 1106:	_Val<_Tp> __oldval = load(__ptr, memory_order_relaxed);
+        -: 1107:	_Val<_Tp> __newval = __oldval - __i;
+        -: 1108:	while (!compare_exchange_weak(__ptr, __oldval, __newval,
+        -: 1109:				      memory_order_seq_cst,
+        -: 1110:				      memory_order_relaxed))
+        -: 1111:	  __newval = __oldval - __i;
+        -: 1112:	return __newval;
+        -: 1113:      }
+        -: 1114:  } // namespace __atomic_impl
+        -: 1115:
+        -: 1116:  // base class for atomic<floating-point-type>
+        -: 1117:  template<typename _Fp>
+        -: 1118:    struct __atomic_float
+        -: 1119:    {
+        -: 1120:      static_assert(is_floating_point_v<_Fp>);
+        -: 1121:
+        -: 1122:      static constexpr size_t _S_alignment = __alignof__(_Fp);
+        -: 1123:
+        -: 1124:    public:
+        -: 1125:      using value_type = _Fp;
+        -: 1126:      using difference_type = value_type;
+        -: 1127:
+        -: 1128:      static constexpr bool is_always_lock_free
+        -: 1129:	= __atomic_always_lock_free(sizeof(_Fp), 0);
+        -: 1130:
+        -: 1131:      __atomic_float() = default;
+        -: 1132:
+        -: 1133:      constexpr
+        -: 1134:      __atomic_float(_Fp __t) : _M_fp(__t)
+        -: 1135:      { }
+        -: 1136:
+        -: 1137:      __atomic_float(const __atomic_float&) = delete;
+        -: 1138:      __atomic_float& operator=(const __atomic_float&) = delete;
+        -: 1139:      __atomic_float& operator=(const __atomic_float&) volatile = delete;
+        -: 1140:
+        -: 1141:      _Fp
+        -: 1142:      operator=(_Fp __t) volatile noexcept
+        -: 1143:      {
+        -: 1144:	this->store(__t);
+        -: 1145:	return __t;
+        -: 1146:      }
+        -: 1147:
+        -: 1148:      _Fp
+        -: 1149:      operator=(_Fp __t) noexcept
+        -: 1150:      {
+        -: 1151:	this->store(__t);
+        -: 1152:	return __t;
+        -: 1153:      }
+        -: 1154:
+        -: 1155:      bool
+        -: 1156:      is_lock_free() const volatile noexcept
+        -: 1157:      { return __atomic_impl::is_lock_free<sizeof(_Fp), _S_alignment>(); }
+        -: 1158:
+        -: 1159:      bool
+        -: 1160:      is_lock_free() const noexcept
+        -: 1161:      { return __atomic_impl::is_lock_free<sizeof(_Fp), _S_alignment>(); }
+        -: 1162:
+        -: 1163:      void
+        -: 1164:      store(_Fp __t, memory_order __m = memory_order_seq_cst) volatile noexcept
+        -: 1165:      { __atomic_impl::store(&_M_fp, __t, __m); }
+        -: 1166:
+        -: 1167:      void
+        -: 1168:      store(_Fp __t, memory_order __m = memory_order_seq_cst) noexcept
+        -: 1169:      { __atomic_impl::store(&_M_fp, __t, __m); }
+        -: 1170:
+        -: 1171:      _Fp
+        -: 1172:      load(memory_order __m = memory_order_seq_cst) const volatile noexcept
+        -: 1173:      { return __atomic_impl::load(&_M_fp, __m); }
+        -: 1174:
+        -: 1175:      _Fp
+        -: 1176:      load(memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1177:      { return __atomic_impl::load(&_M_fp, __m); }
+        -: 1178:
+        -: 1179:      operator _Fp() const volatile noexcept { return this->load(); }
+        -: 1180:      operator _Fp() const noexcept { return this->load(); }
+        -: 1181:
+        -: 1182:      _Fp
+        -: 1183:      exchange(_Fp __desired,
+        -: 1184:	       memory_order __m = memory_order_seq_cst) volatile noexcept
+        -: 1185:      { return __atomic_impl::exchange(&_M_fp, __desired, __m); }
+        -: 1186:
+        -: 1187:      _Fp
+        -: 1188:      exchange(_Fp __desired,
+        -: 1189:	       memory_order __m = memory_order_seq_cst) noexcept
+        -: 1190:      { return __atomic_impl::exchange(&_M_fp, __desired, __m); }
+        -: 1191:
+        -: 1192:      bool
+        -: 1193:      compare_exchange_weak(_Fp& __expected, _Fp __desired,
+        -: 1194:			    memory_order __success,
+        -: 1195:			    memory_order __failure) noexcept
+        -: 1196:      {
+        -: 1197:	return __atomic_impl::compare_exchange_weak(&_M_fp,
+        -: 1198:						    __expected, __desired,
+        -: 1199:						    __success, __failure);
+        -: 1200:      }
+        -: 1201:
+        -: 1202:      bool
+        -: 1203:      compare_exchange_weak(_Fp& __expected, _Fp __desired,
+        -: 1204:			    memory_order __success,
+        -: 1205:			    memory_order __failure) volatile noexcept
+        -: 1206:      {
+        -: 1207:	return __atomic_impl::compare_exchange_weak(&_M_fp,
+        -: 1208:						    __expected, __desired,
+        -: 1209:						    __success, __failure);
+        -: 1210:      }
+        -: 1211:
+        -: 1212:      bool
+        -: 1213:      compare_exchange_strong(_Fp& __expected, _Fp __desired,
+        -: 1214:			      memory_order __success,
+        -: 1215:			      memory_order __failure) noexcept
+        -: 1216:      {
+        -: 1217:	return __atomic_impl::compare_exchange_strong(&_M_fp,
+        -: 1218:						      __expected, __desired,
+        -: 1219:						      __success, __failure);
+        -: 1220:      }
+        -: 1221:
+        -: 1222:      bool
+        -: 1223:      compare_exchange_strong(_Fp& __expected, _Fp __desired,
+        -: 1224:			      memory_order __success,
+        -: 1225:			      memory_order __failure) volatile noexcept
+        -: 1226:      {
+        -: 1227:	return __atomic_impl::compare_exchange_strong(&_M_fp,
+        -: 1228:						      __expected, __desired,
+        -: 1229:						      __success, __failure);
+        -: 1230:      }
+        -: 1231:
+        -: 1232:      bool
+        -: 1233:      compare_exchange_weak(_Fp& __expected, _Fp __desired,
+        -: 1234:			    memory_order __order = memory_order_seq_cst)
+        -: 1235:      noexcept
+        -: 1236:      {
+        -: 1237:	return compare_exchange_weak(__expected, __desired, __order,
+        -: 1238:                                     __cmpexch_failure_order(__order));
+        -: 1239:      }
+        -: 1240:
+        -: 1241:      bool
+        -: 1242:      compare_exchange_weak(_Fp& __expected, _Fp __desired,
+        -: 1243:			    memory_order __order = memory_order_seq_cst)
+        -: 1244:      volatile noexcept
+        -: 1245:      {
+        -: 1246:	return compare_exchange_weak(__expected, __desired, __order,
+        -: 1247:                                     __cmpexch_failure_order(__order));
+        -: 1248:      }
+        -: 1249:
+        -: 1250:      bool
+        -: 1251:      compare_exchange_strong(_Fp& __expected, _Fp __desired,
+        -: 1252:			      memory_order __order = memory_order_seq_cst)
+        -: 1253:      noexcept
+        -: 1254:      {
+        -: 1255:	return compare_exchange_strong(__expected, __desired, __order,
+        -: 1256:				       __cmpexch_failure_order(__order));
+        -: 1257:      }
+        -: 1258:
+        -: 1259:      bool
+        -: 1260:      compare_exchange_strong(_Fp& __expected, _Fp __desired,
+        -: 1261:			      memory_order __order = memory_order_seq_cst)
+        -: 1262:      volatile noexcept
+        -: 1263:      {
+        -: 1264:	return compare_exchange_strong(__expected, __desired, __order,
+        -: 1265:				       __cmpexch_failure_order(__order));
+        -: 1266:      }
+        -: 1267:
+        -: 1268:#if __cpp_lib_atomic_wait
+        -: 1269:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1270:      wait(_Fp __old, memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1271:      { __atomic_impl::wait(&_M_fp, __old, __m); }
+        -: 1272:
+        -: 1273:      // TODO add const volatile overload
+        -: 1274:
+        -: 1275:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1276:      notify_one() const noexcept
+        -: 1277:      { __atomic_impl::notify_one(&_M_fp); }
+        -: 1278:
+        -: 1279:      // TODO add const volatile overload
+        -: 1280:
+        -: 1281:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1282:      notify_all() const noexcept
+        -: 1283:      { __atomic_impl::notify_all(&_M_fp); }
+        -: 1284:
+        -: 1285:      // TODO add const volatile overload
+        -: 1286:#endif // __cpp_lib_atomic_wait
+        -: 1287:
+        -: 1288:      value_type
+        -: 1289:      fetch_add(value_type __i,
+        -: 1290:		memory_order __m = memory_order_seq_cst) noexcept
+        -: 1291:      { return __atomic_impl::__fetch_add_flt(&_M_fp, __i, __m); }
+        -: 1292:
+        -: 1293:      value_type
+        -: 1294:      fetch_add(value_type __i,
+        -: 1295:		memory_order __m = memory_order_seq_cst) volatile noexcept
+        -: 1296:      { return __atomic_impl::__fetch_add_flt(&_M_fp, __i, __m); }
+        -: 1297:
+        -: 1298:      value_type
+        -: 1299:      fetch_sub(value_type __i,
+        -: 1300:		memory_order __m = memory_order_seq_cst) noexcept
+        -: 1301:      { return __atomic_impl::__fetch_sub_flt(&_M_fp, __i, __m); }
+        -: 1302:
+        -: 1303:      value_type
+        -: 1304:      fetch_sub(value_type __i,
+        -: 1305:		memory_order __m = memory_order_seq_cst) volatile noexcept
+        -: 1306:      { return __atomic_impl::__fetch_sub_flt(&_M_fp, __i, __m); }
+        -: 1307:
+        -: 1308:      value_type
+        -: 1309:      operator+=(value_type __i) noexcept
+        -: 1310:      { return __atomic_impl::__add_fetch_flt(&_M_fp, __i); }
+        -: 1311:
+        -: 1312:      value_type
+        -: 1313:      operator+=(value_type __i) volatile noexcept
+        -: 1314:      { return __atomic_impl::__add_fetch_flt(&_M_fp, __i); }
+        -: 1315:
+        -: 1316:      value_type
+        -: 1317:      operator-=(value_type __i) noexcept
+        -: 1318:      { return __atomic_impl::__sub_fetch_flt(&_M_fp, __i); }
+        -: 1319:
+        -: 1320:      value_type
+        -: 1321:      operator-=(value_type __i) volatile noexcept
+        -: 1322:      { return __atomic_impl::__sub_fetch_flt(&_M_fp, __i); }
+        -: 1323:
+        -: 1324:    private:
+        -: 1325:      alignas(_S_alignment) _Fp _M_fp _GLIBCXX20_INIT(0);
+        -: 1326:    };
+        -: 1327:#undef _GLIBCXX20_INIT
+        -: 1328:
+        -: 1329:  template<typename _Tp,
+        -: 1330:	   bool = is_integral_v<_Tp>, bool = is_floating_point_v<_Tp>>
+        -: 1331:    struct __atomic_ref;
+        -: 1332:
+        -: 1333:  // base class for non-integral, non-floating-point, non-pointer types
+        -: 1334:  template<typename _Tp>
+        -: 1335:    struct __atomic_ref<_Tp, false, false>
+        -: 1336:    {
+        -: 1337:      static_assert(is_trivially_copyable_v<_Tp>);
+        -: 1338:
+        -: 1339:      // 1/2/4/8/16-byte types must be aligned to at least their size.
+        -: 1340:      static constexpr int _S_min_alignment
+        -: 1341:	= (sizeof(_Tp) & (sizeof(_Tp) - 1)) || sizeof(_Tp) > 16
+        -: 1342:	? 0 : sizeof(_Tp);
+        -: 1343:
+        -: 1344:    public:
+        -: 1345:      using value_type = _Tp;
+        -: 1346:
+        -: 1347:      static constexpr bool is_always_lock_free
+        -: 1348:	= __atomic_always_lock_free(sizeof(_Tp), 0);
+        -: 1349:
+        -: 1350:      static constexpr size_t required_alignment
+        -: 1351:	= _S_min_alignment > alignof(_Tp) ? _S_min_alignment : alignof(_Tp);
+        -: 1352:
+        -: 1353:      __atomic_ref& operator=(const __atomic_ref&) = delete;
+        -: 1354:
+        -: 1355:      explicit
+        -: 1356:      __atomic_ref(_Tp& __t) : _M_ptr(std::__addressof(__t))
+        -: 1357:      { __glibcxx_assert(((uintptr_t)_M_ptr % required_alignment) == 0); }
+        -: 1358:
+        -: 1359:      __atomic_ref(const __atomic_ref&) noexcept = default;
+        -: 1360:
+        -: 1361:      _Tp
+        -: 1362:      operator=(_Tp __t) const noexcept
+        -: 1363:      {
+        -: 1364:	this->store(__t);
+        -: 1365:	return __t;
+        -: 1366:      }
+        -: 1367:
+        -: 1368:      operator _Tp() const noexcept { return this->load(); }
+        -: 1369:
+        -: 1370:      bool
+        -: 1371:      is_lock_free() const noexcept
+        -: 1372:      { return __atomic_impl::is_lock_free<sizeof(_Tp), required_alignment>(); }
+        -: 1373:
+        -: 1374:      void
+        -: 1375:      store(_Tp __t, memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1376:      { __atomic_impl::store(_M_ptr, __t, __m); }
+        -: 1377:
+        -: 1378:      _Tp
+        -: 1379:      load(memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1380:      { return __atomic_impl::load(_M_ptr, __m); }
+        -: 1381:
+        -: 1382:      _Tp
+        -: 1383:      exchange(_Tp __desired, memory_order __m = memory_order_seq_cst)
+        -: 1384:      const noexcept
+        -: 1385:      { return __atomic_impl::exchange(_M_ptr, __desired, __m); }
+        -: 1386:
+        -: 1387:      bool
+        -: 1388:      compare_exchange_weak(_Tp& __expected, _Tp __desired,
+        -: 1389:			    memory_order __success,
+        -: 1390:			    memory_order __failure) const noexcept
+        -: 1391:      {
+        -: 1392:	return __atomic_impl::compare_exchange_weak(_M_ptr,
+        -: 1393:						    __expected, __desired,
+        -: 1394:						    __success, __failure);
+        -: 1395:      }
+        -: 1396:
+        -: 1397:      bool
+        -: 1398:      compare_exchange_strong(_Tp& __expected, _Tp __desired,
+        -: 1399:			    memory_order __success,
+        -: 1400:			    memory_order __failure) const noexcept
+        -: 1401:      {
+        -: 1402:	return __atomic_impl::compare_exchange_strong(_M_ptr,
+        -: 1403:						      __expected, __desired,
+        -: 1404:						      __success, __failure);
+        -: 1405:      }
+        -: 1406:
+        -: 1407:      bool
+        -: 1408:      compare_exchange_weak(_Tp& __expected, _Tp __desired,
+        -: 1409:			    memory_order __order = memory_order_seq_cst)
+        -: 1410:      const noexcept
+        -: 1411:      {
+        -: 1412:	return compare_exchange_weak(__expected, __desired, __order,
+        -: 1413:                                     __cmpexch_failure_order(__order));
+        -: 1414:      }
+        -: 1415:
+        -: 1416:      bool
+        -: 1417:      compare_exchange_strong(_Tp& __expected, _Tp __desired,
+        -: 1418:			      memory_order __order = memory_order_seq_cst)
+        -: 1419:      const noexcept
+        -: 1420:      {
+        -: 1421:	return compare_exchange_strong(__expected, __desired, __order,
+        -: 1422:				       __cmpexch_failure_order(__order));
+        -: 1423:      }
+        -: 1424:
+        -: 1425:#if __cpp_lib_atomic_wait
+        -: 1426:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1427:      wait(_Tp __old, memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1428:      { __atomic_impl::wait(_M_ptr, __old, __m); }
+        -: 1429:
+        -: 1430:      // TODO add const volatile overload
+        -: 1431:
+        -: 1432:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1433:      notify_one() const noexcept
+        -: 1434:      { __atomic_impl::notify_one(_M_ptr); }
+        -: 1435:
+        -: 1436:      // TODO add const volatile overload
+        -: 1437:
+        -: 1438:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1439:      notify_all() const noexcept
+        -: 1440:      { __atomic_impl::notify_all(_M_ptr); }
+        -: 1441:
+        -: 1442:      // TODO add const volatile overload
+        -: 1443:#endif // __cpp_lib_atomic_wait
+        -: 1444:
+        -: 1445:    private:
+        -: 1446:      _Tp* _M_ptr;
+        -: 1447:    };
+        -: 1448:
+        -: 1449:  // base class for atomic_ref<integral-type>
+        -: 1450:  template<typename _Tp>
+        -: 1451:    struct __atomic_ref<_Tp, true, false>
+        -: 1452:    {
+        -: 1453:      static_assert(is_integral_v<_Tp>);
+        -: 1454:
+        -: 1455:    public:
+        -: 1456:      using value_type = _Tp;
+        -: 1457:      using difference_type = value_type;
+        -: 1458:
+        -: 1459:      static constexpr bool is_always_lock_free
+        -: 1460:	= __atomic_always_lock_free(sizeof(_Tp), 0);
+        -: 1461:
+        -: 1462:      static constexpr size_t required_alignment
+        -: 1463:	= sizeof(_Tp) > alignof(_Tp) ? sizeof(_Tp) : alignof(_Tp);
+        -: 1464:
+        -: 1465:      __atomic_ref() = delete;
+        -: 1466:      __atomic_ref& operator=(const __atomic_ref&) = delete;
+        -: 1467:
+        -: 1468:      explicit
+        -: 1469:      __atomic_ref(_Tp& __t) : _M_ptr(&__t)
+        -: 1470:      { __glibcxx_assert(((uintptr_t)_M_ptr % required_alignment) == 0); }
+        -: 1471:
+        -: 1472:      __atomic_ref(const __atomic_ref&) noexcept = default;
+        -: 1473:
+        -: 1474:      _Tp
+        -: 1475:      operator=(_Tp __t) const noexcept
+        -: 1476:      {
+        -: 1477:	this->store(__t);
+        -: 1478:	return __t;
+        -: 1479:      }
+        -: 1480:
+        -: 1481:      operator _Tp() const noexcept { return this->load(); }
+        -: 1482:
+        -: 1483:      bool
+        -: 1484:      is_lock_free() const noexcept
+        -: 1485:      {
+        -: 1486:	return __atomic_impl::is_lock_free<sizeof(_Tp), required_alignment>();
+        -: 1487:      }
+        -: 1488:
+        -: 1489:      void
+        -: 1490:      store(_Tp __t, memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1491:      { __atomic_impl::store(_M_ptr, __t, __m); }
+        -: 1492:
+        -: 1493:      _Tp
+        -: 1494:      load(memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1495:      { return __atomic_impl::load(_M_ptr, __m); }
+        -: 1496:
+        -: 1497:      _Tp
+        -: 1498:      exchange(_Tp __desired,
+        -: 1499:	       memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1500:      { return __atomic_impl::exchange(_M_ptr, __desired, __m); }
+        -: 1501:
+        -: 1502:      bool
+        -: 1503:      compare_exchange_weak(_Tp& __expected, _Tp __desired,
+        -: 1504:			    memory_order __success,
+        -: 1505:			    memory_order __failure) const noexcept
+        -: 1506:      {
+        -: 1507:	return __atomic_impl::compare_exchange_weak(_M_ptr,
+        -: 1508:						    __expected, __desired,
+        -: 1509:						    __success, __failure);
+        -: 1510:      }
+        -: 1511:
+        -: 1512:      bool
+        -: 1513:      compare_exchange_strong(_Tp& __expected, _Tp __desired,
+        -: 1514:			      memory_order __success,
+        -: 1515:			      memory_order __failure) const noexcept
+        -: 1516:      {
+        -: 1517:	return __atomic_impl::compare_exchange_strong(_M_ptr,
+        -: 1518:						      __expected, __desired,
+        -: 1519:						      __success, __failure);
+        -: 1520:      }
+        -: 1521:
+        -: 1522:      bool
+        -: 1523:      compare_exchange_weak(_Tp& __expected, _Tp __desired,
+        -: 1524:			    memory_order __order = memory_order_seq_cst)
+        -: 1525:      const noexcept
+        -: 1526:      {
+        -: 1527:	return compare_exchange_weak(__expected, __desired, __order,
+        -: 1528:                                     __cmpexch_failure_order(__order));
+        -: 1529:      }
+        -: 1530:
+        -: 1531:      bool
+        -: 1532:      compare_exchange_strong(_Tp& __expected, _Tp __desired,
+        -: 1533:			      memory_order __order = memory_order_seq_cst)
+        -: 1534:      const noexcept
+        -: 1535:      {
+        -: 1536:	return compare_exchange_strong(__expected, __desired, __order,
+        -: 1537:				       __cmpexch_failure_order(__order));
+        -: 1538:      }
+        -: 1539:
+        -: 1540:#if __cpp_lib_atomic_wait
+        -: 1541:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1542:      wait(_Tp __old, memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1543:      { __atomic_impl::wait(_M_ptr, __old, __m); }
+        -: 1544:
+        -: 1545:      // TODO add const volatile overload
+        -: 1546:
+        -: 1547:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1548:      notify_one() const noexcept
+        -: 1549:      { __atomic_impl::notify_one(_M_ptr); }
+        -: 1550:
+        -: 1551:      // TODO add const volatile overload
+        -: 1552:
+        -: 1553:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1554:      notify_all() const noexcept
+        -: 1555:      { __atomic_impl::notify_all(_M_ptr); }
+        -: 1556:
+        -: 1557:      // TODO add const volatile overload
+        -: 1558:#endif // __cpp_lib_atomic_wait 
+        -: 1559:
+        -: 1560:      value_type
+        -: 1561:      fetch_add(value_type __i,
+        -: 1562:		memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1563:      { return __atomic_impl::fetch_add(_M_ptr, __i, __m); }
+        -: 1564:
+        -: 1565:      value_type
+        -: 1566:      fetch_sub(value_type __i,
+        -: 1567:		memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1568:      { return __atomic_impl::fetch_sub(_M_ptr, __i, __m); }
+        -: 1569:
+        -: 1570:      value_type
+        -: 1571:      fetch_and(value_type __i,
+        -: 1572:		memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1573:      { return __atomic_impl::fetch_and(_M_ptr, __i, __m); }
+        -: 1574:
+        -: 1575:      value_type
+        -: 1576:      fetch_or(value_type __i,
+        -: 1577:	       memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1578:      { return __atomic_impl::fetch_or(_M_ptr, __i, __m); }
+        -: 1579:
+        -: 1580:      value_type
+        -: 1581:      fetch_xor(value_type __i,
+        -: 1582:		memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1583:      { return __atomic_impl::fetch_xor(_M_ptr, __i, __m); }
+        -: 1584:
+        -: 1585:      _GLIBCXX_ALWAYS_INLINE value_type
+        -: 1586:      operator++(int) const noexcept
+        -: 1587:      { return fetch_add(1); }
+        -: 1588:
+        -: 1589:      _GLIBCXX_ALWAYS_INLINE value_type
+        -: 1590:      operator--(int) const noexcept
+        -: 1591:      { return fetch_sub(1); }
+        -: 1592:
+        -: 1593:      value_type
+        -: 1594:      operator++() const noexcept
+        -: 1595:      { return __atomic_impl::__add_fetch(_M_ptr, value_type(1)); }
+        -: 1596:
+        -: 1597:      value_type
+        -: 1598:      operator--() const noexcept
+        -: 1599:      { return __atomic_impl::__sub_fetch(_M_ptr, value_type(1)); }
+        -: 1600:
+        -: 1601:      value_type
+        -: 1602:      operator+=(value_type __i) const noexcept
+        -: 1603:      { return __atomic_impl::__add_fetch(_M_ptr, __i); }
+        -: 1604:
+        -: 1605:      value_type
+        -: 1606:      operator-=(value_type __i) const noexcept
+        -: 1607:      { return __atomic_impl::__sub_fetch(_M_ptr, __i); }
+        -: 1608:
+        -: 1609:      value_type
+        -: 1610:      operator&=(value_type __i) const noexcept
+        -: 1611:      { return __atomic_impl::__and_fetch(_M_ptr, __i); }
+        -: 1612:
+        -: 1613:      value_type
+        -: 1614:      operator|=(value_type __i) const noexcept
+        -: 1615:      { return __atomic_impl::__or_fetch(_M_ptr, __i); }
+        -: 1616:
+        -: 1617:      value_type
+        -: 1618:      operator^=(value_type __i) const noexcept
+        -: 1619:      { return __atomic_impl::__xor_fetch(_M_ptr, __i); }
+        -: 1620:
+        -: 1621:    private:
+        -: 1622:      _Tp* _M_ptr;
+        -: 1623:    };
+        -: 1624:
+        -: 1625:  // base class for atomic_ref<floating-point-type>
+        -: 1626:  template<typename _Fp>
+        -: 1627:    struct __atomic_ref<_Fp, false, true>
+        -: 1628:    {
+        -: 1629:      static_assert(is_floating_point_v<_Fp>);
+        -: 1630:
+        -: 1631:    public:
+        -: 1632:      using value_type = _Fp;
+        -: 1633:      using difference_type = value_type;
+        -: 1634:
+        -: 1635:      static constexpr bool is_always_lock_free
+        -: 1636:	= __atomic_always_lock_free(sizeof(_Fp), 0);
+        -: 1637:
+        -: 1638:      static constexpr size_t required_alignment = __alignof__(_Fp);
+        -: 1639:
+        -: 1640:      __atomic_ref() = delete;
+        -: 1641:      __atomic_ref& operator=(const __atomic_ref&) = delete;
+        -: 1642:
+        -: 1643:      explicit
+        -: 1644:      __atomic_ref(_Fp& __t) : _M_ptr(&__t)
+        -: 1645:      { __glibcxx_assert(((uintptr_t)_M_ptr % required_alignment) == 0); }
+        -: 1646:
+        -: 1647:      __atomic_ref(const __atomic_ref&) noexcept = default;
+        -: 1648:
+        -: 1649:      _Fp
+        -: 1650:      operator=(_Fp __t) const noexcept
+        -: 1651:      {
+        -: 1652:	this->store(__t);
+        -: 1653:	return __t;
+        -: 1654:      }
+        -: 1655:
+        -: 1656:      operator _Fp() const noexcept { return this->load(); }
+        -: 1657:
+        -: 1658:      bool
+        -: 1659:      is_lock_free() const noexcept
+        -: 1660:      {
+        -: 1661:	return __atomic_impl::is_lock_free<sizeof(_Fp), required_alignment>();
+        -: 1662:      }
+        -: 1663:
+        -: 1664:      void
+        -: 1665:      store(_Fp __t, memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1666:      { __atomic_impl::store(_M_ptr, __t, __m); }
+        -: 1667:
+        -: 1668:      _Fp
+        -: 1669:      load(memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1670:      { return __atomic_impl::load(_M_ptr, __m); }
+        -: 1671:
+        -: 1672:      _Fp
+        -: 1673:      exchange(_Fp __desired,
+        -: 1674:	       memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1675:      { return __atomic_impl::exchange(_M_ptr, __desired, __m); }
+        -: 1676:
+        -: 1677:      bool
+        -: 1678:      compare_exchange_weak(_Fp& __expected, _Fp __desired,
+        -: 1679:			    memory_order __success,
+        -: 1680:			    memory_order __failure) const noexcept
+        -: 1681:      {
+        -: 1682:	return __atomic_impl::compare_exchange_weak(_M_ptr,
+        -: 1683:						    __expected, __desired,
+        -: 1684:						    __success, __failure);
+        -: 1685:      }
+        -: 1686:
+        -: 1687:      bool
+        -: 1688:      compare_exchange_strong(_Fp& __expected, _Fp __desired,
+        -: 1689:			    memory_order __success,
+        -: 1690:			    memory_order __failure) const noexcept
+        -: 1691:      {
+        -: 1692:	return __atomic_impl::compare_exchange_strong(_M_ptr,
+        -: 1693:						      __expected, __desired,
+        -: 1694:						      __success, __failure);
+        -: 1695:      }
+        -: 1696:
+        -: 1697:      bool
+        -: 1698:      compare_exchange_weak(_Fp& __expected, _Fp __desired,
+        -: 1699:			    memory_order __order = memory_order_seq_cst)
+        -: 1700:      const noexcept
+        -: 1701:      {
+        -: 1702:	return compare_exchange_weak(__expected, __desired, __order,
+        -: 1703:                                     __cmpexch_failure_order(__order));
+        -: 1704:      }
+        -: 1705:
+        -: 1706:      bool
+        -: 1707:      compare_exchange_strong(_Fp& __expected, _Fp __desired,
+        -: 1708:			      memory_order __order = memory_order_seq_cst)
+        -: 1709:      const noexcept
+        -: 1710:      {
+        -: 1711:	return compare_exchange_strong(__expected, __desired, __order,
+        -: 1712:				       __cmpexch_failure_order(__order));
+        -: 1713:      }
+        -: 1714:
+        -: 1715:#if __cpp_lib_atomic_wait
+        -: 1716:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1717:      wait(_Fp __old, memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1718:      { __atomic_impl::wait(_M_ptr, __old, __m); }
+        -: 1719:
+        -: 1720:      // TODO add const volatile overload
+        -: 1721:
+        -: 1722:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1723:      notify_one() const noexcept
+        -: 1724:      { __atomic_impl::notify_one(_M_ptr); }
+        -: 1725:
+        -: 1726:      // TODO add const volatile overload
+        -: 1727:
+        -: 1728:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1729:      notify_all() const noexcept
+        -: 1730:      { __atomic_impl::notify_all(_M_ptr); }
+        -: 1731:
+        -: 1732:      // TODO add const volatile overload
+        -: 1733:#endif // __cpp_lib_atomic_wait
+        -: 1734:
+        -: 1735:      value_type
+        -: 1736:      fetch_add(value_type __i,
+        -: 1737:		memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1738:      { return __atomic_impl::__fetch_add_flt(_M_ptr, __i, __m); }
+        -: 1739:
+        -: 1740:      value_type
+        -: 1741:      fetch_sub(value_type __i,
+        -: 1742:		memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1743:      { return __atomic_impl::__fetch_sub_flt(_M_ptr, __i, __m); }
+        -: 1744:
+        -: 1745:      value_type
+        -: 1746:      operator+=(value_type __i) const noexcept
+        -: 1747:      { return __atomic_impl::__add_fetch_flt(_M_ptr, __i); }
+        -: 1748:
+        -: 1749:      value_type
+        -: 1750:      operator-=(value_type __i) const noexcept
+        -: 1751:      { return __atomic_impl::__sub_fetch_flt(_M_ptr, __i); }
+        -: 1752:
+        -: 1753:    private:
+        -: 1754:      _Fp* _M_ptr;
+        -: 1755:    };
+        -: 1756:
+        -: 1757:  // base class for atomic_ref<pointer-type>
+        -: 1758:  template<typename _Tp>
+        -: 1759:    struct __atomic_ref<_Tp*, false, false>
+        -: 1760:    {
+        -: 1761:    public:
+        -: 1762:      using value_type = _Tp*;
+        -: 1763:      using difference_type = ptrdiff_t;
+        -: 1764:
+        -: 1765:      static constexpr bool is_always_lock_free = ATOMIC_POINTER_LOCK_FREE == 2;
+        -: 1766:
+        -: 1767:      static constexpr size_t required_alignment = __alignof__(_Tp*);
+        -: 1768:
+        -: 1769:      __atomic_ref() = delete;
+        -: 1770:      __atomic_ref& operator=(const __atomic_ref&) = delete;
+        -: 1771:
+        -: 1772:      explicit
+        -: 1773:      __atomic_ref(_Tp*& __t) : _M_ptr(std::__addressof(__t))
+        -: 1774:      { __glibcxx_assert(((uintptr_t)_M_ptr % required_alignment) == 0); }
+        -: 1775:
+        -: 1776:      __atomic_ref(const __atomic_ref&) noexcept = default;
+        -: 1777:
+        -: 1778:      _Tp*
+        -: 1779:      operator=(_Tp* __t) const noexcept
+        -: 1780:      {
+        -: 1781:	this->store(__t);
+        -: 1782:	return __t;
+        -: 1783:      }
+        -: 1784:
+        -: 1785:      operator _Tp*() const noexcept { return this->load(); }
+        -: 1786:
+        -: 1787:      bool
+        -: 1788:      is_lock_free() const noexcept
+        -: 1789:      {
+        -: 1790:	return __atomic_impl::is_lock_free<sizeof(_Tp*), required_alignment>();
+        -: 1791:      }
+        -: 1792:
+        -: 1793:      void
+        -: 1794:      store(_Tp* __t, memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1795:      { __atomic_impl::store(_M_ptr, __t, __m); }
+        -: 1796:
+        -: 1797:      _Tp*
+        -: 1798:      load(memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1799:      { return __atomic_impl::load(_M_ptr, __m); }
+        -: 1800:
+        -: 1801:      _Tp*
+        -: 1802:      exchange(_Tp* __desired,
+        -: 1803:	       memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1804:      { return __atomic_impl::exchange(_M_ptr, __desired, __m); }
+        -: 1805:
+        -: 1806:      bool
+        -: 1807:      compare_exchange_weak(_Tp*& __expected, _Tp* __desired,
+        -: 1808:			    memory_order __success,
+        -: 1809:			    memory_order __failure) const noexcept
+        -: 1810:      {
+        -: 1811:	return __atomic_impl::compare_exchange_weak(_M_ptr,
+        -: 1812:						    __expected, __desired,
+        -: 1813:						    __success, __failure);
+        -: 1814:      }
+        -: 1815:
+        -: 1816:      bool
+        -: 1817:      compare_exchange_strong(_Tp*& __expected, _Tp* __desired,
+        -: 1818:			    memory_order __success,
+        -: 1819:			    memory_order __failure) const noexcept
+        -: 1820:      {
+        -: 1821:	return __atomic_impl::compare_exchange_strong(_M_ptr,
+        -: 1822:						      __expected, __desired,
+        -: 1823:						      __success, __failure);
+        -: 1824:      }
+        -: 1825:
+        -: 1826:      bool
+        -: 1827:      compare_exchange_weak(_Tp*& __expected, _Tp* __desired,
+        -: 1828:			    memory_order __order = memory_order_seq_cst)
+        -: 1829:      const noexcept
+        -: 1830:      {
+        -: 1831:	return compare_exchange_weak(__expected, __desired, __order,
+        -: 1832:                                     __cmpexch_failure_order(__order));
+        -: 1833:      }
+        -: 1834:
+        -: 1835:      bool
+        -: 1836:      compare_exchange_strong(_Tp*& __expected, _Tp* __desired,
+        -: 1837:			      memory_order __order = memory_order_seq_cst)
+        -: 1838:      const noexcept
+        -: 1839:      {
+        -: 1840:	return compare_exchange_strong(__expected, __desired, __order,
+        -: 1841:				       __cmpexch_failure_order(__order));
+        -: 1842:      }
+        -: 1843:
+        -: 1844:#if __cpp_lib_atomic_wait
+        -: 1845:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1846:      wait(_Tp* __old, memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1847:      { __atomic_impl::wait(_M_ptr, __old, __m); }
+        -: 1848:
+        -: 1849:      // TODO add const volatile overload
+        -: 1850:
+        -: 1851:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1852:      notify_one() const noexcept
+        -: 1853:      { __atomic_impl::notify_one(_M_ptr); }
+        -: 1854:
+        -: 1855:      // TODO add const volatile overload
+        -: 1856:
+        -: 1857:      _GLIBCXX_ALWAYS_INLINE void
+        -: 1858:      notify_all() const noexcept
+        -: 1859:      { __atomic_impl::notify_all(_M_ptr); }
+        -: 1860:
+        -: 1861:      // TODO add const volatile overload
+        -: 1862:#endif // __cpp_lib_atomic_wait
+        -: 1863:
+        -: 1864:      _GLIBCXX_ALWAYS_INLINE value_type
+        -: 1865:      fetch_add(difference_type __d,
+        -: 1866:		memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1867:      { return __atomic_impl::fetch_add(_M_ptr, _S_type_size(__d), __m); }
+        -: 1868:
+        -: 1869:      _GLIBCXX_ALWAYS_INLINE value_type
+        -: 1870:      fetch_sub(difference_type __d,
+        -: 1871:		memory_order __m = memory_order_seq_cst) const noexcept
+        -: 1872:      { return __atomic_impl::fetch_sub(_M_ptr, _S_type_size(__d), __m); }
+        -: 1873:
+        -: 1874:      value_type
+        -: 1875:      operator++(int) const noexcept
+        -: 1876:      { return fetch_add(1); }
+        -: 1877:
+        -: 1878:      value_type
+        -: 1879:      operator--(int) const noexcept
+        -: 1880:      { return fetch_sub(1); }
+        -: 1881:
+        -: 1882:      value_type
+        -: 1883:      operator++() const noexcept
+        -: 1884:      {
+        -: 1885:	return __atomic_impl::__add_fetch(_M_ptr, _S_type_size(1));
+        -: 1886:      }
+        -: 1887:
+        -: 1888:      value_type
+        -: 1889:      operator--() const noexcept
+        -: 1890:      {
+        -: 1891:	return __atomic_impl::__sub_fetch(_M_ptr, _S_type_size(1));
+        -: 1892:      }
+        -: 1893:
+        -: 1894:      value_type
+        -: 1895:      operator+=(difference_type __d) const noexcept
+        -: 1896:      {
+        -: 1897:	return __atomic_impl::__add_fetch(_M_ptr, _S_type_size(__d));
+        -: 1898:      }
+        -: 1899:
+        -: 1900:      value_type
+        -: 1901:      operator-=(difference_type __d) const noexcept
+        -: 1902:      {
+        -: 1903:	return __atomic_impl::__sub_fetch(_M_ptr, _S_type_size(__d));
+        -: 1904:      }
+        -: 1905:
+        -: 1906:    private:
+        -: 1907:      static constexpr ptrdiff_t
+        -: 1908:      _S_type_size(ptrdiff_t __d) noexcept
+        -: 1909:      {
+        -: 1910:	static_assert(is_object_v<_Tp>);
+        -: 1911:	return __d * sizeof(_Tp);
+        -: 1912:      }
+        -: 1913:
+        -: 1914:      _Tp** _M_ptr;
+        -: 1915:    };
+        -: 1916:
+        -: 1917:#endif // C++2a
+        -: 1918:
+        -: 1919:  /// @} group atomics
+        -: 1920:
+        -: 1921:_GLIBCXX_END_NAMESPACE_VERSION
+        -: 1922:} // namespace std
+        -: 1923:
+        -: 1924:#endif
