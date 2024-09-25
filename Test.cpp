@@ -11,9 +11,6 @@ TEST_CASE ("Test Non-connected graph") {
     // Create a directed graph with 4 vertices
     Graph g(4);
     g.addEdge(0, 1, 10);
-    g.addEdge(0, 2, 6);
-    g.addEdge(0, 3, 5);
-    g.addEdge(1, 3, 15);
     g.addEdge(2, 3, 4);
 
     CHECK(!g.isConnected());
@@ -68,18 +65,10 @@ TEST_CASE ("Connected graph") {
     Graph g(5);
     g.addEdge(0, 1, 2);
     g.addEdge(0, 3, 6);
-    g.addEdge(1, 0, 2);
     g.addEdge(1, 2, 3);
-    g.addEdge(1, 3, 8);
     g.addEdge(1, 4, 5);
-    g.addEdge(2, 1, 3);
     g.addEdge(2, 4, 7);
-    g.addEdge(3, 0, 6);
-    g.addEdge(3, 1, 8);
     g.addEdge(3, 4, 9);
-    g.addEdge(4, 1, 5);
-    g.addEdge(4, 2, 7);
-    g.addEdge(4, 3, 9);
 
     CHECK(g.isConnected());
 
@@ -116,11 +105,22 @@ TEST_CASE ("Connected graph") {
     // Check the size of the MST
     CHECK(mstEdges.size() == expectedEdges.size());
 
+    // print expected and mst
+    std::cout << "Expected Edges:\n";
+    for (const Edge& edge : expectedEdges) {
+        std::cout << edge.u << " -> " << edge.v << " (" << edge.weight << ")\n";
+    }
+
+    std::cout << "MST Edges:\n";
+    for (const Edge& edge : mstEdges) {
+        std::cout << edge.u << " -> " << edge.v << " (" << edge.weight << ")\n";
+    }
+
     // Check the content of the MST
     for (const Edge& edge : mstEdges) {
         bool found = false;
         for (const Edge& expected : expectedEdges) {
-            if (expected.u == edge.u && expected.v == edge.v && expected.weight == edge.weight) {
+            if (expected == edge) {
                 found = true;
                 break;
             }

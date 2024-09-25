@@ -5,7 +5,6 @@
 Graph::Graph(int num_vertices) {
     this->num_vertices = num_vertices;
     adj.resize(num_vertices);
-    adjT.resize(num_vertices);
 
     #ifdef DEBUG
         std::cout << "Graph initialized with " << num_vertices << " vertices" << std::endl;
@@ -20,24 +19,46 @@ Graph::~Graph() {
 void Graph::resetGraph(int num_vertices) {
     this->num_vertices = num_vertices;
     adj.clear();
-    adjT.clear();
     adj.resize(num_vertices);
-    adjT.resize(num_vertices);
 }
 
 void Graph::addEdge(int u, int v, int weight) {
-    // DIRECTED GRAPH
-    adj[u].push_back(Edge(u, v, weight));
-    adjT[v].push_back(Edge(v, u, weight));
+    if (u < 0 || u >= num_vertices || v < 0 || v >= num_vertices) {
+        return;
+    }
+    bool found = false;
+    for (const Edge& edge : adj[u]) {
+        if (edge == v) {
+            found = true;
+        }
+    }
+    if (!found) {
+        adj[u].push_back(Edge(u, v, weight));
+    }
+    found = false;
+    for (const Edge& edge : adj[v]) {
+        if (edge == u) {
+            found = true;
+        }
+    }
+    if (!found) {
+        adj[v].push_back(Edge(v, u, weight));
+    }
 }
 
 void Graph::removeEdge(int u, int v) {
-    // DIRECTED GRAPH
-    for (auto it = adj[u].begin(); it != adj[u].end(); ++it) {
-        if (it->v == v) {
-            adj[u].erase(it);
-            break;
-        }
+    auto it_u = std::remove_if(adj[u].begin(), adj[u].end(), [v](const Edge& edge) {
+        return edge == v;
+    });
+    if (it_u != adj[u].end()) {
+        adj[u].erase(it_u, adj[u].end());
+    }
+
+    auto it_v = std::remove_if(adj[v].begin(), adj[v].end(), [u](const Edge& edge) {
+        return edge == u;
+    });
+    if (it_v != adj[v].end()) {
+        adj[v].erase(it_v, adj[v].end());
     }
 }
 
@@ -65,116 +86,31 @@ std::vector<Edge> Graph::getNeighbors(int u) const {
 }
 
 bool Graph::isConnected() {
-    return this->Kosaraju();
+    // use simple dfs, this is an undirected graph
+    std::vector<bool> visited(num_vertices, false);
+    DFS(0, visited);
+
+    for (bool v : visited) {
+        if (!v) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // DFS function for a graph
-void Graph::DFS(int v, std::vector<bool>& visited, std::stack<int>& stack) {
+void Graph::DFS(int v, std::vector<bool>& visited) {
     visited[v] = true;
 
     // Visit all neighbors of v
     for (const Edge& edge : adj[v]) {
         if (!visited[edge.v]) {
-            DFS(edge.v, visited, stack);
+            DFS(edge.v, visited);
         }
     }
-
-    // Store the vertex after the DFS finishes
-    stack.push(v);
-}
-
-// DFS function for the reversed graph
-void Graph::reverseDFS(int v, std::vector<bool>& visited) {
-    visited[v] = true;
-
-    // Visit all neighbors in the reversed graph
-    
-    for (const Edge& edge : adjT[v]) {
-
-        if (!visited[edge.v]) {
-            reverseDFS(edge.v, visited);
-        }
-    }
-}
-
-bool Graph::Kosaraju() {
-    // Step 1: Perform DFS on the original graph
-    std::stack<int> stack;
-    std::vector<bool> visited(this->getNumVertices(), false);
-
-    // Perform DFS from the first vertex
-    DFS(0, visited, stack);
-
-    // Check if all vertices were visited
-    for (int i = 0; i < this->getNumVertices(); i++) {
-        if (!visited[i]) {
-            return false; // Not strongly connected
-        }
-    }
-
-    // Step 2: Perform DFS on the reversed graph
-    visited.assign(this->getNumVertices(), false); // Reset visited array
-
-    // Perform DFS on the vertex with the highest finishing time in original graph
-    reverseDFS(stack.top(), visited);
-
-    // Check if all vertices were visited in the reversed graph
-    for (int i = 0; i < this->getNumVertices(); i++) {
-        if (!visited[i]) {
-            return false; // Not strongly connected
-        }
-    }
-
-    return true; // Graph is strongly connected
-}
-
-
-void Graph::generateRandomEdges(int num_edges, unsigned int seed) {
-    srand(seed);
-    
-    int edge_count = 0;
-    while (edge_count < num_edges) {
-        int u = rand() % num_vertices;
-        int v = rand() % num_vertices;
-        int weight = rand() % 100;
-
-        // make sure we don't add the same edge twice or an edge to itself
-        if (u != v && std::find(adj[u].begin(), adj[u].end(), v) == adj[u].end()) {
-            addEdge(u, v, weight);
-            edge_count++;
-        }
-    }
-
-    #ifdef DEBUG
-        std::cout << "Generated " << num_edges << " random edges" << std::endl;
-    #endif
 }
 
 int Graph::getNumVertices() const {
     return num_vertices;
-}
-
-int Graph::getNumEdges() const {
-    int edge_count = 0;
-    for (int i = 0; i < num_vertices; ++i) {
-        edge_count += adj[i].size();
-    }
-    return edge_count;
-}
-
-void Graph::show(){
-    // export the graph to txt and run python file in another thread to show it
-    std::ofstream out("graph.txt");
-    out << num_vertices << std::endl;
-    for (int i = 0; i < num_vertices; ++i) {
-        for (Edge edge : adj[i]) {
-            out << edge.u << " " << edge.v << " " << edge.weight << std::endl;
-        }
-    }
-    out.close();
-
-    system("python3 show_graph.py"); 
-
-    // remove the file after showing
-    remove("graph.txt");
 }

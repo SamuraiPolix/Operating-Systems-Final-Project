@@ -74,7 +74,7 @@ void handle_client(int client_socket) {
             if (u >= 0 && v >= 0 && u < graph.getNumVertices() && v < graph.getNumVertices()) {
                 graph.addEdge(u, v, weight);
                 expected_edges--;
-                std::cout << "Added edge " << u << "->" << v << " [" << weight << "]. " << expected_edges << " edges remaining.\n";
+                std::cout << "Added edge " << u << "<->" << v << " [" << weight << "]. " << expected_edges << " edges remaining.\n";
                 std::string response = "Edge added. " + std::to_string(expected_edges) + " edges remaining.\n";
                 send(client_socket, response.c_str(), response.size(), 0);
             } else {
@@ -91,7 +91,7 @@ void handle_client(int client_socket) {
                     lock.lock();
                     graph.addEdge(u, v, weight);
                     lock.unlock();
-                    std::cout << "Added edge " << u << "->" << v << " [" << weight << "].\n";
+                    std::cout << "Added edge " << u << "<->" << v << " [" << weight << "].\n";
                 } else {
                     std::cout << "Error: Vertex index out of bounds\n";
                 }
@@ -123,7 +123,7 @@ void handle_client(int client_socket) {
             lock.unlock();
             std::string response = "Minimum Spanning Tree (Boruvka):\n";
             for (const Edge& edge : mst) {
-                response += std::to_string(edge.u) + " -> " + std::to_string(edge.v) + " (" + std::to_string(edge.weight) + ")\n";
+                response += std::to_string(edge.u) + " <-> " + std::to_string(edge.v) + " (" + std::to_string(edge.weight) + ")\n";
             }
             response += solver->printMetrics(mst);
             send(client_socket, response.c_str(), response.size(), 0);
@@ -136,7 +136,7 @@ void handle_client(int client_socket) {
             lock.unlock();
             std::string response = "Minimum Spanning Tree (Prim):\n";
             for (const Edge& edge : mst) {
-                response += std::to_string(edge.u) + " -> " + std::to_string(edge.v) + " (" + std::to_string(edge.weight) + ")\n";
+                response += std::to_string(edge.u) + " <-> " + std::to_string(edge.v) + " (" + std::to_string(edge.weight) + ")\n";
             }
             response += solver->printMetrics(mst);
             send(client_socket, response.c_str(), response.size(), 0);

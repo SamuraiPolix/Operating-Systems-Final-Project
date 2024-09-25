@@ -103,10 +103,9 @@ void unionSets(std::vector<int>& parent, std::vector<int>& rank, int u, int v) {
 
 // Boruvka's algorithm implementation
 std::vector<Edge> BoruvkaSolver::solve(Graph& graph) {
-    // if (!graph.isConnected()) {
-    //     std::cout << "Graph is not connected\n";
-    //     return {};
-    // }
+    if (!graph.isConnected()) {
+        return {};
+    }
     int numVertices = graph.getNumVertices();
     std::vector<Edge> mstEdges;
     std::vector<int> parent(numVertices);
@@ -172,55 +171,10 @@ std::vector<Edge> BoruvkaSolver::solve(Graph& graph) {
     return mstEdges;
 }
 
-// std::vector<Edge> PrimSolver::solve(Graph& graph) {
-//     int numVertices = graph.getNumVertices();
-//     std::vector<int> key(numVertices, INT_MAX);  // Key values to pick the minimum edge weight
-//     std::vector<bool> inMST(numVertices, false); // To keep track of vertices included in MST
-//     std::vector<int> parent(numVertices, -1);    // Array to store the MST
-//     std::vector<Edge> mstEdges;
-
-//     key[0] = 0; // Start from vertex 0 (arbitrary choice)
-
-//     // Loop for all vertices
-//     for (int count = 0; count < numVertices - 1; ++count) {
-//         int u = -1;
-
-//         // Pick the vertex with the minimum key value that is not in MST
-//         for (int i = 0; i < numVertices; ++i) {
-//             if (!inMST[i] && (u == -1 || key[i] < key[u])) {
-//                 u = i;
-//             }
-//         }
-
-//         inMST[u] = true;  // Include u in MST
-
-//         // Update the key values and parent index of adjacent vertices of u
-//         for (const Edge& edge : graph.getNeighbors(u)) {
-//             int v = edge.v;
-//             int weight = edge.weight;
-
-//             if (!inMST[v] && weight < key[v]) {
-//                 parent[v] = u;
-//                 key[v] = weight;
-//             }
-//         }
-//     }
-
-//     // Build the MST from the parent array
-//     for (int i = 1; i < numVertices; ++i) {
-//         if (parent[i] != -1) {
-//             mstEdges.push_back(graph.getEdge(parent[i], i));
-//         }
-//     }
-
-//     return mstEdges;
-// }
-
 std::vector<Edge> PrimSolver::solve(Graph& graph) {
-    // if (!graph.isConnected()) {
-    //     std::cout << "Graph is not connected\n";
-    //     return {};
-    // }
+    if (!graph.isConnected()) {
+        return {};
+    }
     int numVertices = graph.getNumVertices();
     
     std::vector<int> key(numVertices, INT_MAX);  // Key values to pick the minimum edge weight
@@ -245,10 +199,10 @@ std::vector<Edge> PrimSolver::solve(Graph& graph) {
         
         // If it's not the starting vertex, add the edge to MST
         if (parent_u != -1) {
-            mstEdges.push_back(graph.getEdge(parent_u, u)); // Directed edge from parent_u -> u
+            mstEdges.push_back(graph.getEdge(u, parent_u)); // Undirected edge between u and parent_u
         }
 
-        // Loop over all neighbors of u (directed edges u -> v)
+        // Loop over all neighbors of u (undirected edges u <-> v)
         for (const Edge& edge : graph.getNeighbors(u)) {
             int v = edge.v;
             int weight = edge.weight;

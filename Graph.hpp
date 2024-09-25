@@ -15,7 +15,7 @@ struct Edge {
 
     // Overload the == operator to compare edges
     bool operator==(const Edge& other) const {
-        return u == other.u && v == other.v && weight == other.weight;
+        return (u == other.u && v == other.v && weight == other.weight) || (u == other.v && v == other.u && weight == other.weight);
     }
 
     bool operator==(const int& other) const {
@@ -28,12 +28,11 @@ struct Edge {
     }
 };
 
-// Weighted, directed graph class
+// Weighted, undirected graph class
 class Graph {
 private:
     int num_vertices;                     // Number of vertices in the graph
     std::vector<std::vector<Edge>> adj;  // Adjacency list for each vertex
-    std::vector<std::vector<Edge>> adjT; // Transposed adjacency list for Kosaraju's algorithm
     
 public:
     // Constructor to init a graph with the given number of vertices (no edges yet)
@@ -57,27 +56,15 @@ public:
 
     Edge& getEdge(int u, int v);
 
-    // Generate random edges for the graph based on the given number of edges and seed
-    void generateRandomEdges(int num_edges, unsigned int seed);
-
     // Check if the graph is connected
     bool isConnected();
 
     // Get the number of vertices in the graph
     int getNumVertices() const;
 
-    // Get the number of edges in the graph
-    int getNumEdges() const;
-
-    // Show the graph in a GUI using python script
-    // TODO DELETE?
-    void show();
-
 private:
-    // Helper DFS functions to visit all vertices in directed graph - using Kosaraju's algorithm
-    void DFS(int v, std::vector<bool>& visited, std::stack<int>& stack);
-    void reverseDFS(int v, std::vector<bool>& visited);
-    bool Kosaraju();
+    // Helper DFS functions to visit all vertices in undirected graph
+    void DFS(int v, std::vector<bool>& visited);
 };
 
 
